@@ -8,7 +8,6 @@ const PromptInput = () => {
   const [value, setValue] = useState("");
   const [isPlanMode, setIsPlanMode] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-resize textarea
   useEffect(() => {
