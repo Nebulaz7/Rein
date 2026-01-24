@@ -1,5 +1,5 @@
 import React from "react";
-import Navbar from "./components/Navbar";
+import Navbar from "./components/HomeNavbar";
 import PromptInput from "./components/PromptInput";
 
 const Home = () => {
