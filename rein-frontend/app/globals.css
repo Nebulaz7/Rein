@@ -230,6 +230,7 @@
 ::-webkit-scrollbar {
   width: 4px;
   height: 10px;
+  display: none;
 }
 
 ::-webkit-scrollbar-track {
