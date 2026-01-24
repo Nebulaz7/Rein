@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import Navbar from "../home/components/HomeNavbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -178,8 +179,13 @@ export default function ChatPage() {
                         {/* Header with Rein icon and actions menu */}
                         <div className="flex items-center min-h-6 select-none justify-between">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                              <Sparkles className="w-4 h-4 text-primary" />
+                            <div className="w-8 h-8 rounded-full  flex items-center justify-center">
+                              <Image
+                                src="/rein-logo.svg"
+                                alt="Rein AI Logo"
+                                width={16}
+                                height={16}
+                              />
                             </div>
                             <span className="text-xs font-medium text-muted-foreground">
                               Rein AI
@@ -282,8 +288,13 @@ export default function ChatPage() {
                     {/* Left Side Actions */}
                     <div className="flex gap-1 items-center min-w-0 flex-shrink">
                       {/* Model Selector */}
-                      <button className="flex items-center gap-1 text-xs px-2 h-7 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                        <Sparkles className="w-4 h-4 text-primary" />
+                      <button className="flex items-center gap-1.5 text-xs px-2 h-7 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                        <Image
+                          src="/rein-logo.svg"
+                          alt="Rein AI Logo"
+                          width={16}
+                          height={16}
+                        />
                         <span>Rein Agent</span>
                         <ChevronDown className="w-3 h-3 opacity-70" />
                       </button>
@@ -295,7 +306,7 @@ export default function ChatPage() {
                       <button
                         onClick={handleSendMessage}
                         disabled={!userInput.trim() || isProcessing}
-                        className="flex items-center justify-center font-bold px-3 py-1 gap-1 rounded-full bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 transition-all"
+                        className="flex items-center justify-center cursor-pointer font-bold px-3 py-1 gap-1 rounded-full bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 transition-all"
                       >
                         Send
                         <ArrowUp className="w-4 h-4 inline-block mt-0.5" />
@@ -313,12 +324,12 @@ export default function ChatPage() {
           {/* Resize Handle */}
           <div
             onMouseDown={handleMouseDown}
-            className={`w-1 hover:w-1.5 bg-border hover:bg-primary/50 cursor-col-resize transition-all flex items-center justify-center group ${
+            className={`w-2 hover:w-2.5 bg-border hover:bg-primary/50 cursor-col-resize transition-all flex items-center justify-center group ${
               isResizing ? "bg-primary/50 w-1.5" : ""
             }`}
           >
             <div
-              className={`opacity-0 group-hover:opacity-100 transition-opacity ${
+              className={`opacity-100 text-white p-4 bg-gray rounded-full group-hover:opacity-100 transition-opacity ${
                 isResizing ? "opacity-100" : ""
               }`}
             >
@@ -367,7 +378,7 @@ export default function ChatPage() {
 
             <div className="mt-auto pt-6">
               <Button
-                className="w-full py-6 text-lg font-black uppercase group"
+                className="w-full py-6 cursor-pointertext-lg font-black uppercase group"
                 disabled={!auditStats.platformReady}
               >
                 Implement Plan
