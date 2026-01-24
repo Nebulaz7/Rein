@@ -1,5 +1,5 @@
 import React from "react";
-import Navbar from "./components/Navbar";
+import Navbar from "./components/HomeNavbar";
 import PromptInput from "./components/PromptInput";
 
 const Home = () => {
@@ -41,4 +41,3 @@ const Home = () => {
 };
 
 export default Home;
-// Change this to a execute svg

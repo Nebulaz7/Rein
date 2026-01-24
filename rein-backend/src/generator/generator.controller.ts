@@ -1,5 +1,5 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { ChatService, RoadmapResponse } from './chat.service';
+import { ChatService, ResolutionResponse } from './generator.service';
 
 @Controller('chat')
 export class ChatController {
@@ -8,16 +8,15 @@ export class ChatController {
   @Post()
   @HttpCode(HttpStatus.OK)
   async handleChat(
-    @Body('userMessage') userMessage: string,
-    @Body('modelType') modelType: 'sprint' | 'standard' | 'architect',
-  ): Promise<RoadmapResponse | { error: string }> {
-    if (!userMessage || typeof userMessage !== 'string' || userMessage.trim() === '') {
-      return { error: 'userMessage is required and must be a non-empty string' };
+    @Body('prompt') prompt: string,
+    @Body('mode') modeType: 'plan' | 'agent',
+  ): Promise<ResolutionResponse | { error: string }> {
+    if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
+      return { error: 'Prompt is required and must be a non-empty string' };
     }
 
     try {
-      const result: RoadmapResponse = await this.chatService.generateRoadmap(userMessage.trim(), modelType);
-
+      const result: ResolutionResponse = await this.chatService.generateResolution(prompt.trim(), modeType);
       console.log('ROADMAP GENERATED SUCCESSFULLY');
       console.log('Calendar intent:', result.shouldTriggerCalendar);
       if (result.calendarIntentReason) {
@@ -28,7 +27,7 @@ export class ChatController {
       return result;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate roadmap';
-      console.error('ERROR generating roadmap:', errorMessage);
+      console.error('ERROR generating resolution:', errorMessage);
       if (error instanceof Object && 'stack' in error) {
         console.error(error.stack);
       }

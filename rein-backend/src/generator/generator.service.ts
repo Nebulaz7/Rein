@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { GoogleGenAI, Type } from '@google/genai';
-import { buildRoadmapPrompt } from '../../utils/index';
-import { ParsedRoadmap } from '../../types/index';
-import { GoalPreprocessorService } from '../preprocessor/goal-preprocessor.service';
+import { buildResolutionPrompt } from '../common/utils/index';
+import { ParsedResolution } from '../common/types/index';
+import { GoalPreprocessorService } from '../preprocessor/goal-preprocessor';
 
-export interface RoadmapResponse {
-  roadmap: ParsedRoadmap;
+export interface ResolutionResponse {
+  resolution: ParsedResolution;
   shouldTriggerCalendar: boolean;
   calendarIntentReason?: string;
 }
@@ -18,21 +18,15 @@ export class ChatService {
     this.ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY! });
   }
 
-  async generateRoadmap(userMessage: string, modelType: 'sprint' | 'standard' | 'architect'): Promise<RoadmapResponse> {
-    const { goal, known, experienceLevel } = await this.goalPreprocessor.preprocess(userMessage);
-    const prompt = buildRoadmapPrompt(goal, known, experienceLevel);
-    const modelMap = {
-      sprint: 'gemini-2.5-flash',
-      standard: 'gemini-2.5-flash',
-      architect: 'gemini-2.5-flash',
-     };
-    const model = modelMap[modelType] || modelMap.standard;
+  async generateResolution(prompt: string, modeType: 'plan' | 'agent'): Promise<ResolutionResponse> {
+    const { goal, known, experienceLevel } = await this.goalPreprocessor.preprocess(prompt);
+    const message = buildResolutionPrompt(goal, known, experienceLevel);
 
     // Define strict response schema using Type enum
     const responseSchema = {
       type: Type.OBJECT,
       properties: {
-        roadmap: {
+        resolution: {
           type: Type.ARRAY,
           items: {
             type: Type.OBJECT,
@@ -75,7 +69,7 @@ export class ChatService {
           nullable: true,
         },
       },
-      required: ['roadmap', 'triggerCalendar'],
+      required: ['resolution', 'triggerCalendar'],
     };
 
     const fullPrompt = `
@@ -85,9 +79,9 @@ Your task is to generate a structured learning roadmap based on the goal below.
 
 Additionally, detect if the user wants calendar integration — only set triggerCalendar to true if they explicitly mention scheduling, reminders, deadlines, calendar events, check-ins, etc.
 
-User's original message: "${userMessage}"
+User's original message: "${prompt}"
 
-Roadmap goal: ${prompt}
+Roadmap goal: ${message}
 
 Examples where triggerCalendar = true:
 - "Make a 6-week plan with weekly reminders"
@@ -110,7 +104,7 @@ Output must be valid JSON matching the schema.
     let text = '';
     try {
       const response = await this.ai.models.generateContent({
-        model,
+        model: 'gemini-2.5-flash',
         contents: fullPrompt,
         config: {
           temperature: 0.7,
@@ -119,7 +113,7 @@ Output must be valid JSON matching the schema.
         },
       });
 
-      console.log("Using model: ", model)
+      console.log("Using model: gemini-2.5-flash");
 
       text = response.text ?? '';
 
@@ -130,7 +124,7 @@ Output must be valid JSON matching the schema.
       const parsed = JSON.parse(text);
 
       return {
-        roadmap: parsed.roadmap,
+        resolution: parsed.resolution,
         shouldTriggerCalendar: parsed.triggerCalendar,
         calendarIntentReason: parsed.calendarIntentReason ?? undefined,
       };
@@ -142,9 +136,9 @@ Output must be valid JSON matching the schema.
         if (text) {
           const fallbackMatch = text.match(/\[[\s\S]*\]/);
           if (fallbackMatch) {
-            const roadmap = JSON.parse(fallbackMatch[0]);
+            const resolution = JSON.parse(fallbackMatch[0]);
             return {
-              roadmap,
+              resolution,
               shouldTriggerCalendar: false,
             };
           }
@@ -152,7 +146,7 @@ Output must be valid JSON matching the schema.
       } catch (fallbackErr) {
       }
 
-      throw new Error(`Failed to generate or parse roadmap: ${err.message}`);
+      throw new Error(`Failed to generate or parse resolution: ${err.message}`);
     }
   }
 }

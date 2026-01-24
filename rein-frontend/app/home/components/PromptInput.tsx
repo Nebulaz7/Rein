@@ -20,8 +20,29 @@ const PromptInput = () => {
     }
   }, [value]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!value.trim() || isEnhancing) return;
+
+    const payload = {
+      prompt: value.trim(),
+      mode: isPlanMode ? "plan" : "build",
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      const response = await fetch('http://localhost:5000/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+      console.log("Backend analysis result:", result);
+    } catch (error) {
+      console.error("Error submitting prompt:", error);
+    }
 
     // TODO: Pass the prompt to the chat page
     console.log("Submitting prompt:", value);

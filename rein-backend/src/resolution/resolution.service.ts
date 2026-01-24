@@ -2,13 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '../common/supabase.service';
 
 @Injectable()
-export class RoadmapService {
+export class ResolutionService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async create(userId: string, title: string, goal: string, roadmap: any) {
     const client = this.supabaseService.getClient();
     const { data, error } = await client
-      .from('roadmaps')
+      .from('resolutions')
       .insert([{ user_id: userId, title, goal, roadmap }])
       .select()
       .single();
@@ -18,11 +18,11 @@ export class RoadmapService {
   }
 
   async findAllByUser(userId: string) {
-    console.log('Finding roadmaps for userId:', userId);
+    console.log('Finding resolution for userId:', userId);
 
     const client = this.supabaseService.getClient();
     const { data, error } = await client
-      .from('roadmaps')
+      .from('resolutions')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
@@ -37,12 +37,12 @@ export class RoadmapService {
     const client = this.supabaseService.getClient();
     
     let query = client
-      .from('roadmaps')
+      .from('resolutions')
       .select('*')
       .eq('id', id);
 
-    // If userId is provided, show their roadmaps or public ones
-    // If no userId, only show public roadmaps
+    // If userId is provided, show their resolutions or public ones
+    // If no userId, only show public resolutions
     if (userId) {
       query = query.or(`user_id.eq.${userId},is_public.eq.true`);
     } else {
@@ -58,7 +58,7 @@ export class RoadmapService {
   async delete(id: string, userId: string) {
     const client = this.supabaseService.getClient();
     const { error } = await client
-      .from('roadmaps')
+      .from('resolutions')
       .delete()
       .eq('id', id)
       .eq('user_id', userId);
@@ -70,7 +70,7 @@ export class RoadmapService {
   async togglePublic(id: string, userId: string, isPublic: boolean) {
     const client = this.supabaseService.getClient();
     const { error } = await client
-      .from('roadmaps')
+      .from('resolutions')
       .update({ is_public: isPublic })
       .eq('id', id)
       .eq('user_id', userId);

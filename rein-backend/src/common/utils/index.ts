@@ -1,14 +1,13 @@
-
 /**
  * Builds a prompt for generating a structured roadmap from a preprocessed goal.
  * @param goal - The user's learning goal (e.g., "Learn React, TypeScript, and Tailwind")
  * @param known - Technologies the user already knows (e.g., ["HTML", "CSS"])
  * @param experienceLevel - Optional level of experience (e.g., "beginner")
  */
-export function buildRoadmapPrompt(
+export function buildResolutionPrompt(
   goal: string,
   known: string[] = [],
-  experienceLevel?: 'beginner' | 'intermediate' | 'advanced'
+  experienceLevel?: 'beginner' | 'intermediate' | 'advanced',
 ): string {
   const knownTech = known.length ? `Avoid including: ${known.join(', ')}.` : '';
   const levelHint = experienceLevel ? `User is ${experienceLevel}-level.` : '';

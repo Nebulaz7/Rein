@@ -1,4 +1,3 @@
-
 export type ResourceType = 'video' | 'article' | 'project';
 
 export interface Resource {
@@ -7,17 +6,17 @@ export interface Resource {
   link: string;
 }
 
-export interface RoadmapNode {
+export interface ResolutionNode {
   id: string;
   title: string;
   description: string;
   resources: Resource[];
 }
 
-export interface RoadmapStage {
+export interface ResolutionStage {
   id: string;
   title: string;
-  nodes: RoadmapNode[];
+  nodes: ResolutionNode[];
 }
 
-export type ParsedRoadmap = RoadmapStage[];
+export type ParsedResolution = ResolutionStage[];
