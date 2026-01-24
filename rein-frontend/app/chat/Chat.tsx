@@ -378,7 +378,7 @@ export default function ChatPage() {
 
             <div className="mt-auto pt-6">
               <Button
-                className="w-full py-6 cursor-pointertext-lg font-black uppercase group"
+                className="w-full py-6 cursor-pointer text-lg font-black uppercase group"
                 disabled={!auditStats.platformReady}
               >
                 Implement Plan
