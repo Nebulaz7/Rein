@@ -12,6 +12,12 @@ export { default as QuickActions } from "./QuickActions";
 export { default as UpNextTasks } from "./UpNextTasks";
 export { default as PlatformDistribution } from "./PlatformDistribution";
 export { default as WeeklyChart } from "./WeeklyChart";
+export { default as DashboardSidebar } from "./DashboardSidebar";
 
 // Re-export types
 export type { Task } from "./ExecutionTimeline";
+export type { DashboardView } from "./DashboardSidebar";
+
+// Export views
+export * from "./views";
+
