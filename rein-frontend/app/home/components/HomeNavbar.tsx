@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -31,12 +32,7 @@ const Navbar = () => {
       id: "calendar",
       name: "Google Calendar",
       icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -60,15 +56,60 @@ const Navbar = () => {
   ]);
 
   const handleConnect = (id: string) => {
-    // TODO: Implement actual OAuth flow for each integration
-    console.log(`Connecting to ${id}...`);
-    setIntegrations((prev) =>
-      prev.map((integration) =>
-        integration.id === id
-          ? { ...integration, connected: !integration.connected }
-          : integration,
-      ),
+    if (id !== "calendar") {
+      console.log(`Connecting to ${id}... (not implemented yet)`);
+      return;
+    }
+
+    // Same calendar connect logic as in ControlBar
+    const userId = "current-user-id"; // ← Replace with real user ID from auth context or props
+    if (!userId) {
+      console.error("No user ID available");
+      return;
+    }
+
+    const width = 500;
+    const height = 600;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+
+    const authWindow = window.open(
+      `${process.env.NEXT_PUBLIC_API_URL}/mcp/calendar/auth?userId=${userId}`,
+      "calendar-auth",
+      `width=${width},height=${height},left=${left},top=${top}`,
     );
+
+    if (!authWindow) {
+      alert("Popup blocked. Please allow popups for this site.");
+      return;
+    }
+
+    const handleMessage = (event: MessageEvent) => {
+      // Security check: verify origin
+      if (event.origin !== window.location.origin) return;
+
+      if (event.data?.type === "calendar_connected" && event.data?.success) {
+        console.log("Calendar connected successfully!");
+        setIntegrations((prev) =>
+          prev.map((int) =>
+            int.id === "calendar" ? { ...int, connected: true } : int,
+          ),
+        );
+        authWindow.close();
+        window.removeEventListener("message", handleMessage);
+        // Optional: trigger any parent callback or refetch user profile
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+
+    // Cleanup on window close
+    const checkClosed = setInterval(() => {
+      if (authWindow.closed) {
+        window.removeEventListener("message", handleMessage);
+        clearInterval(checkClosed);
+      }
+    }, 500);
   };
 
   const connectedCount = integrations.filter((i) => i.connected).length;
@@ -113,11 +154,11 @@ const Navbar = () => {
           <span className="text-foreground text-sm font-medium hidden sm:inline">
             Integrations
           </span>
-          {/* {connectedCount > 0 && (
+          {connectedCount > 0 && (
             <span className="bg-primary text-primary-foreground text-xs font-semibold px-1.5 py-0.5 rounded-full">
               {connectedCount}
             </span>
-          )} */}
+          )}
           <svg
             className={`w-4 h-4 text-muted-foreground transition-transform duration-150 ${
               isDropdownOpen ? "rotate-180" : ""
