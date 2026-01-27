@@ -20,8 +20,8 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
-  },
+    "noFallthroughCasesInSwitch": false,
+   },
   "exclude": [
     "node_modules/@sinclair/typebox/build/cjs/type/type/index.d.ts"
   ]
