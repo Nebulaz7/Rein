@@ -15,6 +15,7 @@ import {
   ChevronDown,
   MoreHorizontal,
   GripVertical,
+  ArrowUp,
 } from "lucide-react";
 
 interface Message {
@@ -139,89 +140,91 @@ export default function ChatPage() {
     }
   };
 
-const startClarification = async (prompt: string) => {
-  setIsProcessing(true);
-  setError(null);
-
-  try {
-    // 1. Call backend to start session
-    const res = await fetch("http://localhost:5000/context/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Failed to start clarification: ${res.status} - ${errText}`);
-    }
-
-    const data = await res.json();
-
-    if (data.type === "skip") {
-      router.push("/resolution"); // or your final page
-      return;
-    }
-
-    const newSession = data.session;
-
-    // 2. Set session state
-    setSession({
-      sessionId: newSession.sessionId,
-      originalPrompt: newSession.originalPrompt,
-      history: newSession.history,
-      roundCount: newSession.roundCount,
-      isAtLimit: false,
-      isReady: false,
-    });
-
-    // 3. Show user's original prompt as first message
-    const userInitialMsg = { role: "user" as const, content: prompt };
-    setMessages([userInitialMsg]);
-
-    // 4. Immediately ask AI for first clarification message
-    // We do this by calling /next with an empty userMessage (first turn)
+  const startClarification = async (prompt: string) => {
     setIsProcessing(true);
+    setError(null);
 
-    const firstAiRes = await fetch("http://localhost:5000/context/next", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      // 1. Call backend to start session
+      const res = await fetch("http://localhost:5000/context/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(
+          `Failed to start clarification: ${res.status} - ${errText}`,
+        );
+      }
+
+      const data = await res.json();
+
+      if (data.type === "skip") {
+        router.push("/resolution"); // or your final page
+        return;
+      }
+
+      const newSession = data.session;
+
+      // 2. Set session state
+      setSession({
         sessionId: newSession.sessionId,
-        userMessage: "", // empty = first turn, AI starts asking
-      }),
-    });
+        originalPrompt: newSession.originalPrompt,
+        history: newSession.history,
+        roundCount: newSession.roundCount,
+        isAtLimit: false,
+        isReady: false,
+      });
 
-    if (!firstAiRes.ok) {
-      throw new Error("Failed to get initial AI clarification");
+      // 3. Show user's original prompt as first message
+      const userInitialMsg = { role: "user" as const, content: prompt };
+      setMessages([userInitialMsg]);
+
+      // 4. Immediately ask AI for first clarification message
+      // We do this by calling /next with an empty userMessage (first turn)
+      setIsProcessing(true);
+
+      const firstAiRes = await fetch("http://localhost:5000/context/next", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: newSession.sessionId,
+          userMessage: "", // empty = first turn, AI starts asking
+        }),
+      });
+
+      if (!firstAiRes.ok) {
+        throw new Error("Failed to get initial AI clarification");
+      }
+
+      const firstAiData = await firstAiRes.json();
+
+      // 5. Append AI's first message
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: firstAiData.assistantMessage },
+      ]);
+
+      // 6. Update session state
+      setSession((prev) =>
+        prev
+          ? {
+              ...prev,
+              roundCount: firstAiData.roundCount,
+              isAtLimit: firstAiData.isAtLimit,
+              isReady: firstAiData.isReady ?? false,
+            }
+          : null,
+      );
+    } catch (err: any) {
+      setError(err.message || "Failed to start clarification session");
+      console.error(err);
+    } finally {
+      setIsProcessing(false);
     }
-
-    const firstAiData = await firstAiRes.json();
-
-    // 5. Append AI's first message
-    setMessages((prev) => [
-      ...prev,
-      { role: "assistant", content: firstAiData.assistantMessage },
-    ]);
-
-    // 6. Update session state
-    setSession((prev) =>
-      prev
-        ? {
-            ...prev,
-            roundCount: firstAiData.roundCount,
-            isAtLimit: firstAiData.isAtLimit,
-            isReady: firstAiData.isReady ?? false,
-          }
-        : null,
-    );
-  } catch (err: any) {
-    setError(err.message || "Failed to start clarification session");
-    console.error(err);
-  } finally {
-    setIsProcessing(false);
-  }
-};
+  };
 
   const handleSendMessage = async () => {
     if (!userInput.trim() || !session || isProcessing) return;
@@ -330,7 +333,12 @@ const startClarification = async (prompt: string) => {
                         <div className="flex items-center min-h-6 select-none justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full flex items-center justify-center">
-                              <Image src="/rein-logo.svg" alt="Rein AI" width={16} height={16} />
+                              <Image
+                                src="/rein-logo.svg"
+                                alt="Rein AI"
+                                width={16}
+                                height={16}
+                              />
                             </div>
                             <span className="text-xs font-medium text-muted-foreground">
                               Rein AI
@@ -380,27 +388,44 @@ const startClarification = async (prompt: string) => {
                     onKeyDown={handleKeyDown}
                     placeholder="Reply to Rein AI..."
                     disabled={isProcessing || session?.isAtLimit}
-                    className="w-full pl-5 pt-5 pr-16 focus:outline-none resize-none text-foreground placeholder:text-muted-foreground bg-transparent text-sm min-h-[80px] max-h-[400px]"
+                    className={
+                      session?.isAtLimit
+                        ? "w-full pl-5 pt-5 pr-16 focus:outline-none resize-none text-foreground placeholder:text-muted-foreground bg-transparent text-sm min-h-20 max-h-100 opacity-50 cursor-not-allowed"
+                        : "w-full pl-5 pt-5 pr-16 focus:outline-none resize-none text-foreground placeholder:text-muted-foreground bg-transparent text-sm min-h-20 max-h-100"
+                    }
                   />
 
                   <div className="flex justify-between items-center text-sm px-3 pb-3 pt-2 gap-2">
                     <div className="flex gap-1 items-center">
-                      <Image src="/rein-logo.svg" alt="Rein" width={16} height={16} />
+                      <Image
+                        src="/rein-logo.svg"
+                        alt="Rein"
+                        width={16}
+                        height={16}
+                      />
                       <span className="text-xs">Rein Agent</span>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <Button
                         onClick={handleSendMessage}
-                        disabled={!userInput.trim() || isProcessing || session?.isAtLimit}
+                        disabled={
+                          !userInput.trim() ||
+                          isProcessing ||
+                          session?.isAtLimit
+                        }
+                        className="text-white font-bold px-1 py-0.5 rounded-full"
                       >
-                        Send
+                        <ArrowUp className="w-6 h-6" />
                       </Button>
 
                       <Button
                         variant="default"
                         onClick={handleImplement}
-                        disabled={isProcessing || (!session?.isReady && !session?.isAtLimit)}
+                        disabled={
+                          isProcessing ||
+                          (!session?.isReady && !session?.isAtLimit)
+                        }
                         className="bg-green-600 hover:bg-green-700"
                       >
                         Implement Plan
@@ -421,12 +446,17 @@ const startClarification = async (prompt: string) => {
               isResizing ? "bg-primary/50 w-1.5" : ""
             }`}
           >
-            <div className={`opacity-100 text-white p-4 bg-gray rounded-full group-hover:opacity-100 transition-opacity ${isResizing ? "opacity-100" : ""}`}>
+            <div
+              className={`opacity-100 text-white p-4 bg-gray rounded-full group-hover:opacity-100 transition-opacity ${isResizing ? "opacity-100" : ""}`}
+            >
               <GripVertical className="w-3 h-3 text-muted-foreground" />
             </div>
           </div>
 
-          <div style={{ width: sidebarWidth }} className="bg-secondary/30 p-6 flex flex-col gap-6 overflow-y-auto">
+          <div
+            style={{ width: sidebarWidth }}
+            className="bg-secondary/30 p-6 flex flex-col gap-6 overflow-y-auto"
+          >
             {/* Your existing sidebar content – audit trace, SMART goals, etc. */}
             {/* You can connect real data from session here later */}
           </div>

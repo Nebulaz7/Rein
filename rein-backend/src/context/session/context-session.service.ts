@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Redis } from 'ioredis';
+import Redis, { Redis as RedisType } from 'ioredis';
 import { randomUUID } from 'crypto';
 import {
   ClarificationSession,
@@ -11,7 +11,7 @@ import { PreprocessedGoal } from '../../preprocessor/types/preprocessor';
 @Injectable()
 export class ClarificationSessionService {
   private readonly logger = new Logger(ClarificationSessionService.name);
-  private readonly redis: Redis;
+  private readonly redis: RedisType;
   private readonly prefix = 'ctx:session:'; // changed prefix to reflect "context" naming
   private readonly ttlSeconds = 3600; // 1 hour
 
