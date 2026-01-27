@@ -1,0 +1,287 @@
+import { Controller, Post, Body, Get, Param, Logger } from '@nestjs/common';
+// import { GeneratorService } from '../generator/generator.service';  // Commented out - service doesn't exist yet
+import { ResolutionService } from '../resolution/resolution.service';
+import { TracingService } from '../ml/tracing/tracing.service';
+import { EvaluationService } from '../ml/evaluation/evaluation.service';
+import { FeedbackService } from '../ml/feedback/feedback.service';
+
+/**
+ * Example Integration - Resolution Generation with Tracing
+ *
+ * This example shows how to integrate the ML infrastructure
+ * into existing NestJS services and controllers.
+ */
+
+@Controller('api/goals')
+export class GoalExampleController {
+  private readonly logger = new Logger(GoalExampleController.name);
+
+  constructor(
+    private generator: GeneratorService,
+    private resolution: ResolutionService,
+    private tracing: TracingService,
+    private evaluation: EvaluationService,
+    private feedback: FeedbackService,
+  ) {}
+
+  /**
+   * Example: Generate a goal with end-to-end tracing
+   *
+   * POST /api/goals/generate
+   *
+   * Request body:
+   * {
+   *   "userId": "user123",
+   *   "goalDescription": "I want to run a 5K by end of Q1",
+   *   "context": {
+   *     "experience_level": "beginner",
+   *     "available_hours": 5
+   *   }
+   * }
+   */
+  @Post('generate')
+  async generateGoal(
+    @Body()
+    req: {
+      userId: string;
+      goalDescription: string;
+      context: Record<string, any>;
+    },
+  ) {
+    this.logger.log(`Generating goal for user: ${req.userId}`);
+
+    return await this.tracing.traceGoalGeneration(
+      req.userId,
+      req.goalDescription,
+      async () => {
+        // Stage 1: Preprocessing
+        const preprocessed = await this.generator.preprocessGoal(
+          req.goalDescription,
+          req.context,
+        );
+
+        this.logger.debug('Goal preprocessed successfully');
+
+        // Stage 2: Generate Resolution
+        const resolution = await this.resolution.generateResolution(
+          preprocessed,
+        );
+
+        this.logger.debug('Resolution generated successfully');
+
+        // Stage 3: Evaluate Quality
+        const evaluation = await this.evaluation.evaluateResolution(
+          req.userId,
+          resolution,
+        );
+
+        this.logger.log(`Resolution quality score: ${evaluation.score}`);
+
+        // Stage 4: Generate Plan
+        const plan = await this.resolution.createPlan(resolution, req.context);
+
+        this.logger.debug('Execution plan created successfully');
+
+        return {
+          preprocessed,
+          resolution,
+          evaluation,
+          plan,
+        };
+      },
+    );
+  }
+
+  /**
+   * Example: Get resolution details with evaluation
+   *
+   * GET /api/goals/:goalId/resolution
+   */
+  @Get(':goalId/resolution')
+  async getResolution(@Param('goalId') goalId: string) {
+    this.logger.log(`Fetching resolution for goal: ${goalId}`);
+
+    const resolution = await this.resolution.getByGoalId(goalId);
+
+    if (!resolution) {
+      return { error: 'Resolution not found' };
+    }
+
+    // If evaluation score not cached, evaluate now
+    if (!resolution.qualityScore) {
+      const evaluation = await this.evaluation.evaluateResolution(
+        goalId,
+        resolution,
+      );
+
+      resolution.qualityScore = evaluation.score;
+      resolution.qualityMetrics = evaluation.metrics;
+    }
+
+    return resolution;
+  }
+
+  /**
+   * Example: Submit user feedback on resolution
+   *
+   * POST /api/goals/:goalId/feedback
+   *
+   * Request body:
+   * {
+   *   "rating": 5,
+   *   "usefulness": true,
+   *   "clarity": true,
+   *   "motivation": true,
+   *   "feedback": "Excellent structure, very motivating!"
+   * }
+   */
+  @Post(':goalId/feedback')
+  async submitFeedback(
+    @Param('goalId') goalId: string,
+    @Body()
+    feedback: {
+      rating: number;
+      usefulness?: boolean;
+      clarity?: boolean;
+      motivation?: boolean;
+      feedback?: string;
+    },
+  ) {
+    this.logger.log(`Received feedback for goal: ${goalId}, rating: ${feedback.rating}`);
+
+    const resolution = await this.resolution.getByGoalId(goalId);
+
+    if (!resolution) {
+      return { error: 'Resolution not found' };
+    }
+
+    // Log feedback to Opik via the original trace
+    await this.feedback.logResolutionFeedback(
+      goalId,
+      resolution.traceId,
+      feedback,
+    );
+
+    return { success: true, message: 'Feedback recorded' };
+  }
+
+  /**
+   * Example: Get aggregated metrics for a user
+   *
+   * GET /api/users/:userId/metrics
+   */
+  @Get('/users/:userId/metrics')
+  async getUserMetrics(@Param('userId') userId: string) {
+    this.logger.log(`Fetching metrics for user: ${userId}`);
+
+    const metrics = await this.feedback.aggregateFeedbackMetrics(userId, {
+      startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
+      endDate: new Date(),
+    });
+
+    return metrics;
+  }
+}
+
+/**
+ * Example Integration - LLM Service with Tracing
+ *
+ * Usage in a service:
+ */
+export class ExampleLlmService {
+  constructor(
+    private llm: any, // LlmServiceWithTracing
+    private opik: any, // OpikClientService
+  ) {}
+
+  /**
+   * Example: Generate resolution using LLM with tracing
+   */
+  async generateResolutionExample(goal: string): Promise<any> {
+    const systemPrompt = `You are an expert life coach creating personalized resolutions...`;
+
+    return await this.llm.generateContent(systemPrompt, goal, {
+      format: 'json',
+      temperature: 0.7,
+      maxTokens: 2000,
+    });
+  }
+
+  /**
+   * Example: Batch generate content
+   */
+  async generateBatchExample(goals: string[]): Promise<any[]> {
+    const prompts = goals.map((goal) => ({
+      system: 'You are an expert life coach...',
+      user: goal,
+      id: goal,
+    }));
+
+    return await this.llm.generateContentBatch(prompts);
+  }
+
+  /**
+   * Example: Stream generation with tracing
+   */
+  async streamGenerationExample(goal: string): Promise<void> {
+    const systemPrompt = `You are an expert life coach...`;
+
+    for await (const chunk of this.llm.generateContentStream(
+      systemPrompt,
+      goal,
+    )) {
+      console.log(chunk);
+    }
+  }
+}
+
+/**
+ * Example Integration - Feedback Collection
+ *
+ * Usage in a service:
+ */
+export class ExampleFeedbackService {
+  constructor(private feedback: any) {} // FeedbackService
+
+  /**
+   * Example: Log multi-dimensional plan feedback
+   */
+  async logPlanFeedbackExample(
+    planId: string,
+    traceId: string,
+  ): Promise<void> {
+    await this.feedback.logPlanFeedback(planId, traceId, {
+      rating: 4,
+      feasibility: 4,
+      clarity: 5,
+      motivation: 4,
+      feedback: 'Very comprehensive plan, but timeline might be tight',
+    });
+  }
+
+  /**
+   * Example: Log progress update
+   */
+  async logProgressExample(goalId: string): Promise<void> {
+    await this.feedback.logProgressFeedback(goalId, {
+      completed: false,
+      completionPercentage: 65,
+      checkinNotes: 'Made good progress on week 3 tasks',
+      difficulty: 3,
+      motivation: 4,
+    });
+  }
+
+  /**
+   * Example: Log coaching session feedback
+   */
+  async logSessionExample(sessionId: string, userId: string): Promise<void> {
+    await this.feedback.logCoachingSessionFeedback(sessionId, userId, {
+      helpfulness: 4,
+      relevance: 5,
+      motivation: 4,
+      actionability: 4,
+      additionalFeedback: 'Great tips for staying motivated',
+    });
+  }
+}

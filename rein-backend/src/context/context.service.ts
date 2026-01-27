@@ -1,7 +1,8 @@
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { GoalPreprocessorService } from '../preprocessor/goal-preprocessor';
 import { ClarificationSessionService } from './session/context-session.service';
-import { GoogleGenAI } from '@google/genai';
+import { LlmServiceWithTracing } from '../ml/llm/llm-service-with-tracing';
+import { TracingService } from '../ml/tracing/tracing.service';
 import {
   ClarificationSession,
   NextClarificationRequest,
@@ -10,15 +11,14 @@ import {
 
 @Injectable()
 export class ContextService {
-  private ai: GoogleGenAI;
   private readonly logger = new Logger(ContextService.name);
 
   constructor(
     private readonly preprocessor: GoalPreprocessorService,
+    private readonly llmService: LlmServiceWithTracing,
+    private readonly tracingService: TracingService,
     private readonly sessionService: ClarificationSessionService,
-  ) {
-    this.ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY! });
-  }
+  ) {}
 
   /**
    * Start clarification process or skip directly to generation
@@ -33,10 +33,7 @@ export class ContextService {
     const { parsed, missingFields } = await this.preprocessor.preprocessAndAnalyze(payload.prompt);
 
     if (missingFields.length === 0) {
-      // TODO: Replace with real resolution generation when ready
-      // const resolution = await this.resolutionService.generate(parsed, payload.prompt);
-      // return { type: 'skip', resolutionId: resolution.id };
-      return { type: 'skip' }; // placeholder — frontend should redirect to resolution
+      return { type: 'skip' };
     }
 
     const session = await this.sessionService.startSession(userId, {
@@ -49,103 +46,101 @@ export class ContextService {
   }
 
   /**
-   * Process next user message → generate AI clarification question/response
+   * Process next user message → generate AI clarification question/response with tracing
    */
-/**
- * Process next user message → generate AI clarification question/response
- */
-async nextContext(
-  userId: string,
-  payload: NextClarificationRequest,
-): Promise<NextClarificationResponse> {
-  // 1. Load session
-  const session = await this.sessionService.getSession(userId, payload.sessionId);
-  if (!session) {
-    throw new NotFoundException('Clarification session not found or expired');
-  }
+  async nextContext(
+    userId: string,
+    payload: NextClarificationRequest,
+  ): Promise<NextClarificationResponse> {
+    // 1. Load session
+    const session = await this.sessionService.getSession(userId, payload.sessionId);
+    if (!session) {
+      throw new NotFoundException('Clarification session not found or expired');
+    }
 
-  // 2. Check roundCount < 2 (hard limit enforcement)
-  if (session.roundCount >= 2) {
-    return {
-      assistantMessage:
-        "You've reached the maximum number of clarification rounds (2/2). " +
-        "Click Implement to generate your personalized resolution.",
-      roundCount: session.roundCount,
-      isAtLimit: true,
-      isReady: true, // we treat limit reached as ready-to-implement
-    };
-  }
+    // 2. Check roundCount < 2 (hard limit enforcement)
+    if (session.roundCount >= 2) {
+      return {
+        assistantMessage:
+          "You've reached the maximum number of clarification rounds (2/2). " +
+          "Click Implement to generate your personalized resolution.",
+        roundCount: session.roundCount,
+        isAtLimit: true,
+        isReady: true,
+      };
+    }
 
-  // Optional: basic input sanitization
-  const userMessage = (payload.userMessage || '').trim();
-  if (session.roundCount > 0 && !userMessage) {
+    // Optional: basic input sanitization
+    const userMessage = (payload.userMessage || '').trim();
+    if (session.roundCount > 0 && !userMessage) {
       throw new BadRequestException('User message cannot be empty');
     }
 
-  // 3. Build prompt
-  const prompt = this.buildClarificationPrompt(session, userMessage);
+    // 3. Use ML infrastructure with tracing
+    try {
+      const assistantMessage = await this.tracingService.traceLlmCall(
+        'clarification_response',
+        {
+          model: 'gemini-2.0-flash',
+          prompt: this.buildClarificationPrompt(session, userMessage),
+          temperature: 0.6,
+          maxTokens: 350,
+        },
+        async () => {
+          // Use the ML service for generation
+          const response = await this.llmService.generateContent(
+            'You are a helpful assistant for goal clarification.',
+            this.buildClarificationPrompt(session, userMessage),
+            {
+              temperature: 0.6,
+              maxTokens: 350,
+              format: 'text',
+            },
+          );
+          return typeof response === 'string' ? response : JSON.stringify(response);
+        },
+      );
 
-  // Debug log (remove or make conditional in production)
-  this.logger.debug(
-    `Sending clarification prompt (round ${session.roundCount + 1})`,
-  );
+      // Fallback check
+      const finalMessage = assistantMessage && assistantMessage.trim().length > 10
+        ? assistantMessage.trim()
+        : "I didn't get enough context to respond properly. " +
+          "Please provide more details or click Implement to proceed with what we have.";
 
-  try {
-    // 4. Call Gemini
-    const response = await this.ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        temperature: 0.6,
-        maxOutputTokens: 350,
-      },
-    });
+      // 4. Update session (same logic as before)
+      const newHistory = [
+        ...session.history,
+        { role: 'user' as const, content: userMessage, timestamp: new Date().toISOString() },
+        { role: 'assistant' as const, content: finalMessage, timestamp: new Date().toISOString() },
+      ];
 
-    let assistantMessage = response.text?.trim();
+      const newRoundCount = session.roundCount + 1;
 
-    if (!assistantMessage || assistantMessage.length < 10) {
-      assistantMessage =
-        "I didn't get enough context to respond properly. " +
-        "Please provide more details or click Implement to proceed with what we have.";
+      await this.sessionService.updateSession(userId, session.sessionId, {
+        history: newHistory,
+        roundCount: newRoundCount,
+      });
+
+      const isReady =
+        newRoundCount >= 2 ||
+        finalMessage.toLowerCase().includes('ready') ||
+        finalMessage.toLowerCase().includes("click 'implement'") ||
+        finalMessage.toLowerCase().includes('looks good');
+
+      return {
+        assistantMessage: finalMessage,
+        roundCount: newRoundCount,
+        isAtLimit: newRoundCount >= 2,
+        isReady,
+      };
+    } catch (err: any) {
+      this.logger.error('ML clarification failed', err);
+      throw new BadRequestException(
+        `Failed to generate AI response: ${err.message || 'Unknown error'}`,
+      );
     }
-
-    // 5. Append both messages to history
-    const newHistory = [
-      ...session.history,
-      { role: 'user' as const, content: userMessage, timestamp: new Date().toISOString() },
-      { role: 'assistant' as const, content: assistantMessage, timestamp: new Date().toISOString() },
-    ];
-
-    // 6. Increment roundCount
-    const newRoundCount = session.roundCount + 1;
-
-    // 7. Save updated session
-    await this.sessionService.updateSession(userId, session.sessionId, {
-      history: newHistory,
-      roundCount: newRoundCount,
-    });
-
-    // Optional: simple readiness heuristic (can be improved later)
-    const isReady =
-      newRoundCount >= 2 ||
-      assistantMessage.toLowerCase().includes('ready') ||
-      assistantMessage.toLowerCase().includes("click 'implement'") ||
-      assistantMessage.toLowerCase().includes('looks good');
-
-    // 8. Return plain structured response to frontend
-    return {
-      assistantMessage,
-      roundCount: newRoundCount,
-      isAtLimit: newRoundCount >= 2,
-      isReady, // useful for frontend to enable "Implement" button
-    };
-  } catch (err: any) {
-    this.logger.error('Gemini clarification failed', err);
-    throw new BadRequestException(
-      `Failed to generate AI response: ${err.message || 'Unknown error'}`,
-    );
   }
-}
+
   /**
    * Get current session state (for frontend hydration or polling)
    */
@@ -177,42 +172,19 @@ async nextContext(
         .join('\n') || '(No additional fields marked missing by preprocessor)';
 
     return `
-You are a concise, friendly, and focused assistant helping users build the best possible personalized learning resolution (roadmap/plan).
+Original user prompt: "${originalPrompt}"
 
-YOU ARE CURRENTLY IN CLARIFICATION MODE ONLY.
-Your ONLY job right now is to ask clarifying questions — do NOT generate the final learning plan/resolution yet.
+Parsed goal so far: ${JSON.stringify(parsedGoal, null, 2)}
 
-STRICT RULES YOU MUST FOLLOW:
-1. Maximum 2 rounds of questions in total (current round: ${roundCount}/2).
-   - If roundCount >= 2, do NOT ask anything more. Just say you're ready.
-2. Ask at most 1–2 short, clear questions per turn. Prefer 1 strong, focused question.
-3. Focus almost exclusively on clarifying the MISSING FIELDS below.
-   - Only ask about other things if the user brings them up or it's obviously critical.
-4. Use natural, encouraging, conversational language (2–5 sentences max).
-5. Do NOT repeat questions already answered in history.
-6. If you have enough information after round 1 (or even now), stop asking and indicate readiness.
-7. Always end your response with EXACTLY one of these signals:
-   - If still need clarification: Ask your question(s)
-   - If ready (or round limit reached): "Looks great! I'm ready to build your personalized resolution. Click 'Implement' when you want to continue."
-8. Never generate the actual roadmap, topics list, schedule, or detailed plan — wait for the user to click Implement.
+Missing / unclear fields (prioritize these): ${missingText}
 
-Original user prompt:
-"""${originalPrompt}"""
+Previous conversation history: ${historyText}
 
-Parsed goal so far:
-${JSON.stringify(parsedGoal, null, 2)}
+Current user message: "${userMessage || '(start of conversation)'}"
 
-Missing / unclear fields (prioritize these):
-${missingText}
+Current round: ${roundCount}/2
 
-Previous conversation history:
-${historyText}
-
-Current user message (answer to your last question, or empty if first turn):
-"""${userMessage || '(start of conversation)'}"""
-
-Now respond ONLY with your clarification message.
-Keep it short, friendly, and helpful.
+Generate a helpful clarification response. Ask 1-2 focused questions about the missing fields. Keep it conversational and under 3 sentences.
 `.trim();
   }
 }

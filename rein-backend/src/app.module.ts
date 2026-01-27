@@ -7,7 +7,7 @@ import { CommonModule } from './common/common.module';
 import { ResolutionModule } from './resolution/resolution.module';
 import { UserModule } from './user/user.module';
 import { ContextModule } from './context/context.module';
-
+import { MlInfrastructureModule } from './ml/ml-infrastructure.module';
 
 @Module({
   imports: [
@@ -15,6 +15,7 @@ import { ContextModule } from './context/context.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    MlInfrastructureModule,
     GeneratorModule,
     ContextModule,
     CommonModule,
