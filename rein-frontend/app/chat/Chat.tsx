@@ -74,6 +74,7 @@ export default function ChatPage() {
   const [sidebarWidth, setSidebarWidth] = useState(640);
   const [isResizing, setIsResizing] = useState(false);
   const [sidebarStatus, setSidebarStatus] = useState("none");
+  const hasInitializedRef = useRef(false);
 
   // Integration states
   const [integrations, setIntegrations] = useState<Integration[]>([
@@ -160,16 +161,18 @@ export default function ChatPage() {
     }
   }, [userInput]);
 
-  // ─── Load or start session ──────────────────────────────────────────
-  useEffect(() => {
-    if (sessionIdFromUrl) {
-      // Coming back to existing session
-      loadExistingSession(sessionIdFromUrl);
-    } else if (initialPrompt && !session) {
-      // Brand new prompt → start clarification
-      startClarification(initialPrompt);
-    }
-  }, [initialPrompt, sessionIdFromUrl]);
+useEffect(() => {
+  if (hasInitializedRef.current) return;
+  
+  if (sessionIdFromUrl) {
+    hasInitializedRef.current = true;
+    loadExistingSession(sessionIdFromUrl);
+  } else if (initialPrompt && !session) {
+    hasInitializedRef.current = true;
+    startClarification(initialPrompt);
+  }
+}, [initialPrompt, sessionIdFromUrl]);
+
 
   const loadExistingSession = async (sid: string) => {
     setIsProcessing(true);
@@ -196,91 +199,86 @@ export default function ChatPage() {
     }
   };
 
-  const startClarification = async (prompt: string) => {
-    setIsProcessing(true);
-    setError(null);
+const startClarification = async (prompt: string) => {
+  setIsProcessing(true);
+  setError(null);
 
-    try {
-      // 1. Call backend to start session
-      const res = await fetch("http://localhost:5000/context/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-      });
+  try {
+    // 1. Only start the session (don't ask for clarification yet)
+    const res = await fetch("http://localhost:5000/context/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    });
 
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(
-          `Failed to start clarification: ${res.status} - ${errText}`,
-        );
-      }
-
-      const data = await res.json();
-
-      if (data.type === "skip") {
-        router.push("/resolution"); // or your final page
-        return;
-      }
-
-      const newSession = data.session;
-
-      // 2. Set session state
-      setSession({
-        sessionId: newSession.sessionId,
-        originalPrompt: newSession.originalPrompt,
-        history: newSession.history,
-        roundCount: newSession.roundCount,
-        isAtLimit: false,
-        isReady: false,
-      });
-
-      // 3. Show user's original prompt as first message
-      const userInitialMsg = { role: "user" as const, content: prompt };
-      setMessages([userInitialMsg]);
-
-      // 4. Immediately ask AI for first clarification message
-      // We do this by calling /next with an empty userMessage (first turn)
-      setIsProcessing(true);
-
-      const firstAiRes = await fetch("http://localhost:5000/context/next", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId: newSession.sessionId,
-          userMessage: "", // empty = first turn, AI starts asking
-        }),
-      });
-
-      if (!firstAiRes.ok) {
-        throw new Error("Failed to get initial AI clarification");
-      }
-
-      const firstAiData = await firstAiRes.json();
-
-      // 5. Append AI's first message
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: firstAiData.assistantMessage },
-      ]);
-
-      // 6. Update session state
-      setSession((prev) =>
-        prev
-          ? {
-              ...prev,
-              roundCount: firstAiData.roundCount,
-              isAtLimit: firstAiData.isAtLimit,
-              isReady: firstAiData.isReady ?? false,
-            }
-          : null,
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(
+        `Failed to start clarification: ${res.status} - ${errText}`,
       );
-    } catch (err: any) {
-      setError(err.message || "Failed to start clarification session");
-      console.error(err);
-    } finally {
-      setIsProcessing(false);
     }
-  };
+
+    const data = await res.json();
+
+    if (data.type === "skip") {
+      router.push("/resolution");
+      return;
+    }
+
+    const newSession = data.session;
+
+    setSession({
+      sessionId: newSession.sessionId,
+      originalPrompt: newSession.originalPrompt,
+      history: newSession.history,
+      roundCount: newSession.roundCount,
+      isAtLimit: false,
+      isReady: false,
+    });
+
+    const userInitialMsg = { role: "user" as const, content: prompt };
+    setMessages([userInitialMsg]);
+
+    // 2. NOW get first AI clarification (with empty userMessage for first turn)
+    setIsProcessing(true);
+
+    const firstAiRes = await fetch("http://localhost:5000/context/next", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: newSession.sessionId,
+        userMessage: "",
+      }),
+    });
+
+    if (!firstAiRes.ok) {
+      throw new Error("Failed to get initial AI clarification");
+    }
+
+    const firstAiData = await firstAiRes.json();
+
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant", content: firstAiData.assistantMessage },
+    ]);
+
+    setSession((prev) =>
+      prev
+        ? {
+            ...prev,
+            roundCount: firstAiData.roundCount,
+            isAtLimit: firstAiData.isAtLimit,
+            isReady: firstAiData.isReady ?? prev.isReady,
+          }
+        : null,
+    );
+  } catch (err: any) {
+    setError(err.message || "Failed to start clarification session");
+    console.error(err);
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
   const handleSendMessage = async () => {
     if (!userInput.trim() || !session || isProcessing) return;

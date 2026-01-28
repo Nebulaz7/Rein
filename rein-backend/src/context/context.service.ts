@@ -23,27 +23,33 @@ export class ContextService {
   /**
    * Start clarification process or skip directly to generation
    */
-  async startContext(
-    userId: string,
-    payload: { prompt: string },
-  ): Promise<
-    | { type: 'skip'; resolutionId?: string }
-    | { type: 'clarify'; session: ClarificationSession }
-  > {
-    const { parsed, missingFields } = await this.preprocessor.preprocessAndAnalyze(payload.prompt);
+async startContext(
+  userId: string,
+  payload: { prompt: string },
+): Promise<
+  | { type: 'skip'; resolutionId?: string }
+  | { type: 'clarify'; session: ClarificationSession }
+> {
+  this.logger.debug(`[startContext] Called for user: ${userId}, prompt: "${payload.prompt.substring(0, 50)}..."`);
+  this.logger.debug(`[startContext] Stack trace:`, new Error().stack);
 
-    if (missingFields.length === 0) {
-      return { type: 'skip' };
-    }
+  const { parsed, missingFields } = await this.preprocessor.preprocessAndAnalyze(payload.prompt);
 
-    const session = await this.sessionService.startSession(userId, {
-      originalPrompt: payload.prompt,
-      parsedGoal: parsed,
-      missingFields,
-    });
-
-    return { type: 'clarify', session };
+  if (missingFields.length === 0) {
+    this.logger.debug(`[startContext] No missing fields - skipping clarification`);
+    return { type: 'skip' };
   }
+
+  this.logger.debug(`[startContext] Creating session with ${missingFields.length} missing fields`);
+  
+  const session = await this.sessionService.startSession(userId, {
+    originalPrompt: payload.prompt,
+    parsedGoal: parsed,
+    missingFields,
+  });
+
+  return { type: 'clarify', session };
+}
 
   /**
    * Process next user message → generate AI clarification question/response with tracing
