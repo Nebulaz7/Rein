@@ -43,6 +43,7 @@ interface SessionData {
   isAtLimit: boolean;
   isReady?: boolean;
   implementationTasks?: string[];
+  summary?: string;
 }
 
 interface Integration {
@@ -66,6 +67,9 @@ export default function ChatPage() {
   const [userInput, setUserInput] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSummary, setShowSummary] = useState(false);
+  const [isEditingPlan, setIsEditingPlan] = useState(false);
+  const [corrections, setCorrections] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -288,7 +292,6 @@ const startClarification = async (prompt: string) => {
     setIsProcessing(true);
     setError(null);
 
-    // Optimistic UI
     setMessages((prev) => [...prev, { role: "user", content: userMsg }]);
 
     try {
@@ -317,12 +320,58 @@ const startClarification = async (prompt: string) => {
               roundCount: data.roundCount,
               isAtLimit: data.isAtLimit,
               isReady: data.isReady ?? prev.isReady,
+              summary: data.summary ?? prev.summary, // Store summary
             }
           : null,
       );
+
+      // Show summary after first user response (round 1)
+      if (data.summary) {
+        setShowSummary(true);
+      }
     } catch (err: any) {
       setError(err.message);
-      // Optional: rollback optimistic message
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleEditPlan = () => {
+    setIsEditingPlan(true);
+  };
+
+  const handleSubmitCorrections = async () => {
+    if (!corrections.trim() || !session) return;
+
+    setIsProcessing(true);
+    try {
+      const res = await fetch("http://localhost:5000/context/update-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: session.sessionId,
+          corrections: corrections.trim(),
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update summary");
+
+      const data = await res.json();
+
+      setSession((prev) =>
+        prev ? { ...prev, summary: data.updatedSummary } : null,
+      );
+
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: `Correction: ${corrections}` },
+        { role: "assistant", content: data.updatedSummary },
+      ]);
+
+      setCorrections("");
+      setIsEditingPlan(false);
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setIsProcessing(false);
     }
@@ -434,6 +483,86 @@ const startClarification = async (prompt: string) => {
                   )}
                 </div>
               ))}
+
+{showSummary && session?.summary && (
+  <div className="pt-3 pb-3 pl-10">
+    <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/30 rounded-lg p-5 max-w-2xl">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+          <CheckCircle2 className="w-5 h-5 text-blue-600" />
+        </div>
+        <div className="flex-1">
+          <h4 className="text-sm font-semibold text-foreground mb-2">
+            Implementation Plan
+          </h4>
+          <div className="text-sm text-foreground whitespace-pre-line">
+            {session.summary}
+          </div>
+        </div>
+      </div>
+
+      {isEditingPlan ? (
+        <div className="flex flex-col gap-3 mt-4">
+          <textarea
+            value={corrections}
+            onChange={(e) => setCorrections(e.target.value)}
+            placeholder="What would you like to change? (e.g., 'Actually, use Next.js instead of React')"
+            className="w-full p-3 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+            rows={3}
+          />
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSubmitCorrections}
+              disabled={!corrections.trim() || isProcessing}
+              size="sm"
+              className="flex-1"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Plan"
+              )}
+            </Button>
+            <Button
+              onClick={() => {
+                setIsEditingPlan(false);
+                setCorrections("");
+              }}
+              variant="outline"
+              size="sm"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2 mt-4">
+          <Button
+            onClick={() => {
+              setShowSummary(false);
+              setSidebarStatus("flex");
+            }}
+            className="flex-1 bg-green-600 hover:bg-green-700"
+            size="sm"
+          >
+            <Play className="w-4 h-4 mr-2" />
+            Implement This Plan
+          </Button>
+          <Button
+            onClick={handleEditPlan}
+            variant="outline"
+            size="sm"
+          >
+            Edit
+          </Button>
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
               {isProcessing && (
                 <div className="flex items-center gap-3 pl-10">

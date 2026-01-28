@@ -88,25 +88,11 @@ export class ClarificationSessionService {
     }
   }
 
-  async updateSession(
-    userId: string,
-    sessionId: string,
-    updates: Partial<Pick<ClarificationSession, 'history' | 'roundCount' | 'lastUpdatedAt'>>,
-  ): Promise<boolean> {
-    const session = await this.getSession(userId, sessionId);
-    if (!session) return false;
-
-    const updatedSession: ClarificationSession = {
-      ...session,
-      ...updates,
-      lastUpdatedAt: new Date().toISOString(),
-    };
-
-    const key = this.getKey(userId, sessionId);
-    await this.redis.set(key, JSON.stringify(updatedSession), 'EX', this.ttlSeconds);
-
-    return true;
-  }
+async updateSession(userId: string, session: ClarificationSession): Promise<void> {
+  const key = this.getKey(userId, session.sessionId);
+  await this.redis.set(key, JSON.stringify(session), 'EX', this.ttlSeconds);
+  this.logger.debug(`Updated session ${session.sessionId} for user ${userId}`);
+}
 
   async deleteSession(userId: string, sessionId: string): Promise<boolean> {
     const key = this.getKey(userId, sessionId);

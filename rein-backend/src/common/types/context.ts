@@ -82,5 +82,6 @@ export interface NextClarificationResponse {
   assistantMessage: string;
   roundCount: number;
   isAtLimit: boolean;
-  isReady?: boolean; // ← new: tells frontend if we can proceed to generation
+  isReady?: boolean;
+  summary?: string; // ← new: tells frontend if we can proceed to generation
 }

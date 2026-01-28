@@ -27,6 +27,13 @@ export class ContextController {
     return this.contextService.nextContext(userId, body);
   }
 
+  @Post('/update-summary')
+  async updateSummary(
+    @Body() payload: { sessionId: string; corrections: string },
+  ) {
+    return this.contextService.updateSummary('anonymous', payload);
+  }
+
   @Get('session/:sessionId')
   async getSession(
     @Req() req: any,
