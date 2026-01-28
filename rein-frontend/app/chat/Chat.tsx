@@ -30,6 +30,43 @@ import {
   Circle,
 } from "lucide-react";
 
+interface Components {
+  [key: string]: React.ComponentType<any>;
+}
+
+// Custom components for ReactMarkdown to style for dark theme
+const markdownComponents: Partial<Components> = {
+  strong: ({ children }) => (
+    <strong className="font-semibold">{children}</strong>
+  ),
+  em: ({ children }) => <em className="italic">{children}</em>,
+  h1: ({ children }) => <h1 className="text-2xl font-bold">{children}</h1>,
+  h2: ({ children }) => <h2 className="text-xl font-bold">{children}</h2>,
+  h3: ({ children }) => <h3 className="text-lg font-bold">{children}</h3>,
+  p: ({ children }) => <p className="mb-2">{children}</p>,
+  ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
+  ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
+  li: ({ children }) => <li className="mb-1">{children}</li>,
+  a: ({ href, children }) => (
+    <a
+      href={href}
+      className="text-primary underline"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {children}
+    </a>
+  ),
+  code: ({ children }) => (
+    <code className="bg-secondary px-1 py-0.5 rounded text-sm">{children}</code>
+  ),
+  blockquote: ({ children }) => (
+    <blockquote className="border-l-2 border-muted pl-4 italic">
+      {children}
+    </blockquote>
+  ),
+};
+
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -451,8 +488,10 @@ export default function ChatPage() {
                 <div key={i} className="flex flex-col gap-3">
                   {m.role === "user" ? (
                     <div className="relative flex flex-col overflow-hidden bg-primary/10 border border-primary/20 px-4 py-3 rounded-2xl self-end max-w-[85%]">
-                      <div className="text-sm text-foreground prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown>{m.content}</ReactMarkdown>
+                      <div className="text-sm text-foreground">
+                        <ReactMarkdown components={markdownComponents}>
+                          {m.content}
+                        </ReactMarkdown>
                       </div>
                     </div>
                   ) : (
@@ -477,8 +516,10 @@ export default function ChatPage() {
                           </button>
                         </div>
 
-                        <div className="text-sm text-white text-foreground leading-relaxed pl-10 prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0 prose-headings:my-2">
-                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                        <div className="text-sm text-foreground leading-relaxed pl-10">
+                          <ReactMarkdown components={markdownComponents}>
+                            {m.content}
+                          </ReactMarkdown>
                         </div>
                       </div>
                     </div>
@@ -497,8 +538,10 @@ export default function ChatPage() {
                         <h4 className="text-sm font-semibold text-foreground mb-2">
                           Implementation Plan
                         </h4>
-                        <div className="text-sm text-foreground prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0">
-                          <ReactMarkdown>{session.summary}</ReactMarkdown>
+                        <div className="text-sm text-foreground">
+                          <ReactMarkdown components={markdownComponents}>
+                            {session.summary}
+                          </ReactMarkdown>
                         </div>
                       </div>
                     </div>
