@@ -16,6 +16,7 @@ import {
   MoreHorizontal,
   GripVertical,
   ArrowUp,
+  X,
 } from "lucide-react";
 
 interface Message {
@@ -53,6 +54,7 @@ export default function ChatPage() {
   // ─── Resizable sidebar (kept from your code) ────────────────────────
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const [isResizing, setIsResizing] = useState(false);
+  const [sidebarStatus, setSidebarStatus] = useState("flex");
 
   const MIN_SIDEBAR_WIDTH = 240;
   const MAX_SIDEBAR_WIDTH = 700;
@@ -407,17 +409,17 @@ export default function ChatPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Button
+                      <button
                         onClick={handleSendMessage}
                         disabled={
                           !userInput.trim() ||
                           isProcessing ||
                           session?.isAtLimit
                         }
-                        className="text-white font-bold px-1 py-0.5 rounded-full"
+                        className="flex items-center justify-center cursor-pointer size-7 rounded-full bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 transition-all"
                       >
-                        <ArrowUp className="w-6 h-6" />
-                      </Button>
+                        <ArrowUp className="w-4 h-4" />
+                      </button>
 
                       <Button
                         variant="default"
@@ -439,7 +441,7 @@ export default function ChatPage() {
         </div>
 
         {/* Sidebar – kept your design */}
-        <div className="hidden lg:flex">
+        <div className="hidden lg:flex" style={{ display: sidebarStatus }}>
           <div
             onMouseDown={handleMouseDown}
             className={`w-2 hover:w-2.5 bg-border hover:bg-primary/50 cursor-col-resize transition-all flex items-center justify-center group ${
@@ -457,6 +459,18 @@ export default function ChatPage() {
             style={{ width: sidebarWidth }}
             className="bg-secondary/30 p-6 flex flex-col gap-6 overflow-y-auto"
           >
+            {/* nav for the implement plan section */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Implementation Overview</h2>
+
+              <button
+                onClick={() => setSidebarStatus("none")}
+                className="p-1 rounded-md cursor-pointer hover:bg-secondary text-muted-foreground"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />{" "}
+                {/* close sidebar */}
+              </button>
+            </div>
             {/* Your existing sidebar content – audit trace, SMART goals, etc. */}
             {/* You can connect real data from session here later */}
           </div>
