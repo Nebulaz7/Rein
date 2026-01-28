@@ -52,9 +52,9 @@ export default function ChatPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // ─── Resizable sidebar (kept from your code) ────────────────────────
-  const [sidebarWidth, setSidebarWidth] = useState(320);
+  const [sidebarWidth, setSidebarWidth] = useState(640);
   const [isResizing, setIsResizing] = useState(false);
-  const [sidebarStatus, setSidebarStatus] = useState("flex");
+  const [sidebarStatus, setSidebarStatus] = useState("none");
 
   const MIN_SIDEBAR_WIDTH = 240;
   const MAX_SIDEBAR_WIDTH = 700;
@@ -374,6 +374,47 @@ export default function ChatPage() {
               {error && <div className="text-red-500 pl-10">{error}</div>}
 
               <div ref={messagesEndRef} />
+              {session?.isAtLimit && (
+                <div className="pt-3 pb-3 pl-10">
+                  <div
+                    onClick={() => setSidebarStatus("flex")}
+                    className="flex text-left font-ui rounded-lg overflow-hidden border transition duration-300 w-full max-w-md hover:bg-primary/5 px-4 border-primary/30 cursor-pointer group"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Open Implementation Overview"
+                    onKeyDown={(e) =>
+                      e.key === "Enter" && setSidebarStatus("flex")
+                    }
+                  >
+                    <div className="flex flex-1 align-start justify-between w-full">
+                      <div className="flex flex-1 gap-2 min-w-0">
+                        <div className="flex flex-col gap-1 py-4 min-w-0 flex-1">
+                          <div className="leading-tight text-sm font-medium line-clamp-1">
+                            Implementation Overview
+                          </div>
+                          <div className="text-xs line-clamp-1 text-muted-foreground">
+                            Ready to implement
+                            <span className="opacity-50"> ∙ </span>
+                            {session.roundCount} clarification rounds
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center w-[68px] relative shrink-0">
+                        <div className="absolute right-2 flex flex-1 overflow-hidden w-[52px] h-[71px] rounded-t-lg border border-border select-none scale-100 group-hover:scale-[1.035] rotate-[0.1rad] group-hover:rotate-[0.065rad] duration-300 ease-out group-hover:duration-400 transition-transform translate-y-[19%] bg-card text-muted-foreground whitespace-pre-wrap text-[0.3rem] leading-none p-2 font-mono break-words">
+                          <div className="flex flex-col gap-0.5">
+                            <div className="h-1 w-8 bg-primary/40 rounded-full"></div>
+                            <div className="h-1 w-6 bg-muted-foreground/30 rounded-full"></div>
+                            <div className="h-1 w-10 bg-muted-foreground/30 rounded-full"></div>
+                            <div className="h-1 w-4 bg-muted-foreground/30 rounded-full"></div>
+                            <div className="h-1 w-7 bg-primary/40 rounded-full"></div>
+                            <div className="h-1 w-5 bg-muted-foreground/30 rounded-full"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
           </div>
 
@@ -420,18 +461,6 @@ export default function ChatPage() {
                       >
                         <ArrowUp className="w-4 h-4" />
                       </button>
-
-                      <Button
-                        variant="default"
-                        onClick={handleImplement}
-                        disabled={
-                          isProcessing ||
-                          (!session?.isReady && !session?.isAtLimit)
-                        }
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        Implement Plan
-                      </Button>
                     </div>
                   </div>
                 </div>
@@ -473,6 +502,16 @@ export default function ChatPage() {
             </div>
             {/* Your existing sidebar content – audit trace, SMART goals, etc. */}
             {/* You can connect real data from session here later */}
+            <Button
+              variant="default"
+              onClick={handleImplement}
+              disabled={
+                isProcessing || (!session?.isReady && !session?.isAtLimit)
+              }
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Implement Plan
+            </Button>
           </div>
         </div>
       </div>
