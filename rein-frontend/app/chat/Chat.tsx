@@ -529,10 +529,10 @@ export default function ChatPage() {
 
               {showSummary && session?.summary && (
                 <div className="pt-3 pb-3 pl-10">
-                  <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/30 rounded-lg p-5 max-w-2xl">
+                  <div className=" brutal-card bg-gradient-to-r from-primary/10 to-primary/10 border border-primary/30 rounded-lg p-5 max-w-2xl">
                     <div className="flex items-start gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                        <CheckCircle2 className="w-5 h-5 text-blue-600" />
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <CheckCircle2 className="w-5 h-5 text-primary" />
                       </div>
                       <div className="flex-1">
                         <h4 className="text-sm font-semibold text-foreground mb-2">
@@ -590,7 +590,7 @@ export default function ChatPage() {
                             setShowSummary(false);
                             setSidebarStatus("flex");
                           }}
-                          className="flex-1 bg-green-600 hover:bg-green-700"
+                          className="cursor-pointer flex-1 bg-primary hover:bg-primary/70"
                           size="sm"
                         >
                           <Play className="w-4 h-4 mr-2" />
@@ -679,9 +679,9 @@ export default function ChatPage() {
                     onChange={(e) => setUserInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Reply to Rein AI..."
-                    disabled={isProcessing || session?.isAtLimit}
+                    disabled={isProcessing || session?.isAtLimit || showSummary}
                     className={
-                      session?.isAtLimit
+                      session?.isAtLimit || showSummary
                         ? "w-full pl-5 pt-5 pr-16 focus:outline-none resize-none text-foreground placeholder:text-muted-foreground bg-transparent text-sm min-h-20 max-h-100 opacity-50 cursor-not-allowed"
                         : "w-full pl-5 pt-5 pr-16 focus:outline-none resize-none text-foreground placeholder:text-muted-foreground bg-transparent text-sm min-h-20 max-h-100"
                     }
