@@ -126,21 +126,6 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
           </button>
         </div>
 
-        {/* New Goal Button */}
-        <div className="p-3">
-          <Link
-            href="/home"
-            className={`flex items-center gap-3 px-3 py-2.5 bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-lg transition-colors ${
-              !isOpen && "justify-center"
-            }`}
-          >
-            <Plus className="w-5 h-5 text-primary flex-shrink-0" />
-            {isOpen && (
-              <span className="text-sm font-medium text-primary">New Goal</span>
-            )}
-          </Link>
-        </div>
-
         {/* Dashboards List */}
         <div className="flex-1 overflow-y-auto px-3 py-2">
           {isOpen && (

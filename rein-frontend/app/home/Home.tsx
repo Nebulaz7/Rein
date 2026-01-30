@@ -6,6 +6,7 @@ import Sidebar from "./components/Sidebar";
 import PromptInput from "./components/PromptInput";
 import CalenderSvg from "../svgs/CalenderSvg";
 import { PanelLeft } from "lucide-react";
+import PixelBlast from "../animations/PixelBlast";
 
 const Home = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -14,8 +15,12 @@ const Home = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
       {/* Sidebar */}
       <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} />
 
@@ -39,13 +44,39 @@ const Home = () => {
         )}
 
         {/* Hero Section */}
-        <div className="relative pt-24 sm:pt-32 md:pt-48 w-full px-4">
-          {/* Background glow effect */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-primary/20 rounded-full blur-[120px] opacity-30"></div>
+        <div
+          className="relative pt-24 sm:pt-32 md:pt-48 w-full px-4"
+          onClick={closeSidebar}
+        >
+          {/* Background Animation Overlay */}
+          <div className="fixed inset-0 z-0 pointer-events-none blur-[3px] sm:hidden lg:block">
+            <PixelBlast
+              variant="square"
+              pixelSize={3}
+              color="#52cbff"
+              patternScale={1.5}
+              patternDensity={0.2}
+              pixelSizeJitter={0}
+              enableRipples={false}
+              rippleSpeed={0.4}
+              rippleThickness={0.12}
+              rippleIntensityScale={1.5}
+              liquid={false}
+              liquidStrength={0.12}
+              liquidRadius={1.2}
+              liquidWobbleSpeed={5}
+              speed={0.1}
+              edgeFade={0.25}
+              transparent
+            />
           </div>
 
-          <div className="relative z-10 flex flex-col gap-4 items-center mb-8">
+          {/* Background glow effect */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-screen bg-primary/20 rounded-full blur-[120px] opacity-30"></div>
+          </div>
+
+          <div className="relative z-10 flex flex-col gap-4 items-center pb-24">
             {/* Main Heading */}
             <h1 className="flex flex-wrap items-center gap-2 sm:gap-3 text-foreground justify-center font-bold text-3xl sm:text-4xl md:text-5xl tracking-tight text-center">
               What will you
@@ -60,7 +91,6 @@ const Home = () => {
             <p className="font-medium text-base sm:text-lg text-muted-foreground text-center max-w-[90vw] md:max-w-xl">
               Turn your goals into real-world execution with AI-powered
               planning.
-              <CalenderSvg className="w-6 h-6 inline-block ml-2" />
             </p>
 
             {/* Prompt Input */}
