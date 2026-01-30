@@ -49,7 +49,7 @@ const Home = () => {
           onClick={closeSidebar}
         >
           {/* Background Animation Overlay */}
-          <div className="fixed inset-0 z-0 pointer-events-none blur-[3px] sm:hidden lg:block">
+          <div className="fixed inset-0 z-0 pointer-events-none blur-[3px] hidden md:hidden lg:block">
             <PixelBlast
               variant="square"
               pixelSize={3}
