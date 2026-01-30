@@ -55,7 +55,7 @@ const Home = () => {
               pixelSize={3}
               color="#52cbff"
               patternScale={1.5}
-              patternDensity={0.2}
+              patternDensity={0.4}
               pixelSizeJitter={0}
               enableRipples={false}
               rippleSpeed={0.4}

@@ -1,7 +1,44 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
+
+// Pool of productivity and work habits suggestions
+const PRODUCTIVITY_SUGGESTIONS = [
+  "Build a morning routine that sticks",
+  "Create a deep work schedule",
+  "Start a daily journaling habit",
+  "Establish a weekly review system",
+  "Build a habit of reading 30 mins daily",
+  "Create a Pomodoro workflow",
+  "Develop a workout routine before work",
+  "Start meal prepping on Sundays",
+  "Build a meditation practice",
+  "Create a no-phone morning rule",
+  "Establish inbox zero by 10am",
+  "Start a gratitude journal",
+  "Build a sleep schedule optimization plan",
+  "Create a focused work environment",
+  "Develop a networking habit",
+  "Start time-blocking my calendar",
+  "Build a skill learning routine",
+  "Create a monthly goal review system",
+  "Establish a daily standup for myself",
+  "Start a side project schedule",
+  "Build a healthy lunch break routine",
+  "Create a wind-down evening routine",
+  "Develop a weekly planning session",
+  "Start tracking my habits daily",
+  "Build a distraction-free work mode",
+];
+
+// Function to get random suggestions
+const getRandomSuggestions = (count: number = 3): string[] => {
+  const shuffled = [...PRODUCTIVITY_SUGGESTIONS].sort(
+    () => Math.random() - 0.5,
+  );
+  return shuffled.slice(0, count);
+};
 
 const PromptInput = () => {
   const router = useRouter();
@@ -9,6 +46,7 @@ const PromptInput = () => {
   const [isPlanMode, setIsPlanMode] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-resize textarea
@@ -20,6 +58,20 @@ const PromptInput = () => {
     }
   }, [value]);
 
+  // Generate random suggestions on mount
+  useEffect(() => {
+    setSuggestions(getRandomSuggestions(3));
+  }, []);
+
+  const refreshSuggestions = () => {
+    setSuggestions(getRandomSuggestions(3));
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setValue(suggestion);
+    textareaRef.current?.focus();
+  };
+
   const handleSubmit = async () => {
     if (!value.trim() || isEnhancing) return;
 
@@ -30,10 +82,10 @@ const PromptInput = () => {
     };
 
     try {
-      const response = await fetch('http://localhost:5000/context/start', {
-        method: 'POST',
+      const response = await fetch("http://localhost:5000/context/start", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
       });
@@ -79,8 +131,8 @@ const PromptInput = () => {
 
   return (
     <div className="relative z-20 w-full max-w-[650px] mx-auto px-4">
-      <div className="relative shadow-lg rounded-2xl">
-        <div className="rounded-xl bg-card border-2 border-border ring-4 ring-secondary">
+      <div className="relative shadow-lg rounded-2xl focus-within:ring-6 focus-within:ring-primary">
+        <div className="rounded-xl bg-card border-2 border-border ring-6 ring-secondary">
           {/* Textarea */}
           <div className="relative">
             <textarea
@@ -201,16 +253,24 @@ const PromptInput = () => {
 
       <div>
         {/* Suggestion pills */}
-        <div className="flex flex-wrap justify-center gap-2 mt-6 mb-8">
-          <span className="px-3 py-1.5 bg-secondary text-sm rounded-full cursor-pointer brutal-shadow-sm brutal-shadow-hover transition">
-            Plan a trip to Japan
-          </span>
-          <span className="px-3 py-1.5 bg-secondary text-sm rounded-full cursor-pointer brutal-shadow-sm brutal-shadow-hover transition">
-            Start a blog
-          </span>
-          <span className="px-3 py-1.5 bg-secondary text-sm rounded-full cursor-pointer brutal-shadow-sm brutal-shadow-hover transition">
-            Learn guitar
-          </span>
+        <div className="flex flex-wrap justify-center items-center gap-2 mt-6 mb-8">
+          {suggestions.map((suggestion, index) => (
+            <button
+              key={index}
+              onClick={() => handleSuggestionClick(suggestion)}
+              className="px-3 py-1.5 bg-secondary brutal-shadow-sm brutal-shadow-hover text-sm rounded-full cursor-pointer hover:bg-secondary/80 hover:border-primary/30 border border-transparent transition-all text-foreground"
+            >
+              {suggestion}
+            </button>
+          ))}
+          <button
+            onClick={refreshSuggestions}
+            className="p-2 text-muted-foreground hover:text-primary hover:bg-secondary rounded-full transition-colors cursor-pointer"
+            aria-label="Refresh suggestions"
+            title="Get new suggestions"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>
