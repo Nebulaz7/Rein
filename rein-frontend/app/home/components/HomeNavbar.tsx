@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation";
 
 interface Integration {
   id: string;
@@ -21,6 +22,7 @@ interface UserProfile {
 }
 
 const Navbar = () => {
+  const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -33,6 +35,18 @@ const Navbar = () => {
 
   // Fetch user profile on mount
   useEffect(() => {
+    const searchUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.push("/");
+      }
+    };
+
+    searchUser();
+
     const fetchUser = async () => {
       const {
         data: { user },
