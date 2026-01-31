@@ -224,13 +224,15 @@ export default function ChatPage() {
   useEffect(() => {
     const fetchSavedResolutions = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           const resolutions = await resolutionAPI.getAllByUser(user.id);
           setSavedResolutions(resolutions);
         }
       } catch (error) {
-        console.error('Failed to fetch saved resolutions:', error);
+        console.error("Failed to fetch saved resolutions:", error);
       }
     };
 
@@ -443,14 +445,16 @@ export default function ChatPage() {
 
     try {
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
-        throw new Error('You must be logged in to save resolutions');
+        throw new Error("You must be logged in to save resolutions");
       }
 
       // Use the session summary if available, otherwise fall back to original prompt
       const prompt = session.summary || session.originalPrompt;
-      
+
       const res = await fetch("http://localhost:5000/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -496,14 +500,16 @@ export default function ChatPage() {
     setIsGeneratingRoadmap(true);
     try {
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
-        throw new Error('You must be logged in to generate resolutions');
+        throw new Error("You must be logged in to generate resolutions");
       }
 
       // Use the session summary if available, otherwise fall back to original prompt
       const prompt = session.summary || session.originalPrompt;
-      
+
       const res = await fetch("http://localhost:5000/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -558,18 +564,22 @@ export default function ChatPage() {
       const latestResolution = savedResolutions[0]; // Assuming they're sorted by createdAt desc
       if (latestResolution.roadmap && Array.isArray(latestResolution.roadmap)) {
         // Extract stage titles from the roadmap
-        return latestResolution.roadmap.map((stage: any) => stage.title || stage.name || 'Untitled Stage');
+        return latestResolution.roadmap.map(
+          (stage: any) => stage.title || stage.name || "Untitled Stage",
+        );
       }
     }
     // Fall back to session implementation tasks or mock data
-    return session?.implementationTasks || [
-      "Create daily workout schedule",
-      "Set up progress tracking milestones", 
-      "Configure reminder notifications",
-      "Establish accountability checkpoints",
-    ];
+    return (
+      session?.implementationTasks || [
+        "Create daily workout schedule",
+        "Set up progress tracking milestones",
+        "Configure reminder notifications",
+        "Establish accountability checkpoints",
+      ]
+    );
   };
-  
+
   const implementationTasks = getImplementationTasks();
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -888,7 +898,7 @@ export default function ChatPage() {
                     What will be implemented
                   </h3>
                   <div className="flex flex-col gap-2">
-                    {implementationTasks.map((task, index) => (
+                    {implementationTasks.map((task: string, index: number) => (
                       <div
                         key={index}
                         className="flex items-start gap-3 p-3 bg-card rounded-lg border border-border"
