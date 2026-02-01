@@ -209,17 +209,84 @@ export default function ChatPage() {
     }
   }, [userInput]);
 
+  // ─── Load session from localStorage or URL on mount ────────────────────────
   useEffect(() => {
     if (hasInitializedRef.current) return;
 
+    // Priority 1: Session ID from URL
     if (sessionIdFromUrl) {
       hasInitializedRef.current = true;
       loadExistingSession(sessionIdFromUrl);
-    } else if (initialPrompt && !session) {
+      return;
+    }
+
+    // Priority 2: Check localStorage for cached session
+    const cachedSession = localStorage.getItem("rein_chat_session");
+    const cachedMessages = localStorage.getItem("rein_chat_messages");
+
+    if (cachedSession && cachedMessages && !initialPrompt) {
+      hasInitializedRef.current = true;
+      try {
+        const parsedSession = JSON.parse(cachedSession);
+        const parsedMessages = JSON.parse(cachedMessages);
+        setSession(parsedSession);
+        setMessages(parsedMessages);
+
+        // Restore sidebar and summary states if session was at limit
+        if (parsedSession.isAtLimit || parsedSession.isReady) {
+          // Check if there was a summary displayed
+          if (parsedSession.summary) {
+            setShowSummary(true);
+          }
+        }
+
+        // Update URL with session ID for shareability
+        router.replace(`/chat?sessionId=${parsedSession.sessionId}`, {
+          scroll: false,
+        });
+      } catch (e) {
+        console.error("Failed to parse cached session:", e);
+        localStorage.removeItem("rein_chat_session");
+        localStorage.removeItem("rein_chat_messages");
+      }
+      return;
+    }
+
+    // Priority 3: Start new session with initial prompt
+    if (initialPrompt && !session) {
       hasInitializedRef.current = true;
       startClarification(initialPrompt);
     }
   }, [initialPrompt, sessionIdFromUrl]);
+
+  // ─── Save session to localStorage whenever it changes ────────────────
+  useEffect(() => {
+    if (session) {
+      localStorage.setItem("rein_chat_session", JSON.stringify(session));
+    }
+  }, [session]);
+
+  // ─── Save messages to localStorage whenever they change ────────────────
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem("rein_chat_messages", JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // ─── Clear session function (call when user wants to start fresh) ───
+  const clearSession = () => {
+    localStorage.removeItem("rein_chat_session");
+    localStorage.removeItem("rein_chat_messages");
+    setSession(null);
+    setMessages([]);
+    setShowSummary(false);
+    setSidebarStatus("none");
+    setError(null);
+    setIntegrationError(null);
+    setSelectedIntegrations([]);
+    hasInitializedRef.current = false;
+    router.push("/home");
+  };
 
   // Fetch saved resolutions for current user
   useEffect(() => {
@@ -894,12 +961,20 @@ export default function ChatPage() {
                   <h2 className="text-lg font-semibold">
                     Implementation Overview
                   </h2>
-                  <button
-                    onClick={() => setSidebarStatus("none")}
-                    className="p-1 rounded-md cursor-pointer hover:bg-secondary text-muted-foreground"
-                  >
-                    <X className="w-5 h-5 text-muted-foreground" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={clearSession}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-secondary"
+                    >
+                      New Chat
+                    </button>
+                    <button
+                      onClick={() => setSidebarStatus("none")}
+                      className="p-1 rounded-md cursor-pointer hover:bg-secondary text-muted-foreground"
+                    >
+                      <X className="w-5 h-5 text-muted-foreground" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Implementation Tasks */}
