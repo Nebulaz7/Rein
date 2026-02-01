@@ -307,7 +307,7 @@ const Navbar = () => {
   return (
     <nav className="h-16 bg-card border-b border-border px-4 sm:px-6 flex items-center justify-between">
       {/* Logo */}
-      <Link href="/" className="flex items-center gap-2 cursor-pointer">
+      <Link href="/home" className="flex items-center gap-2 cursor-pointer">
         <div className="w-8 h-8 bg-transparent rounded-lg flex items-center justify-center">
           <Image
             src="/rein-logo.png"
