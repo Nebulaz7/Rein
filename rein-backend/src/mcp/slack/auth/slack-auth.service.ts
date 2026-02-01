@@ -12,7 +12,7 @@ export class SlackAuthService {
   constructor(private readonly prisma: PrismaService) {
     this.clientId = process.env.SLACK_CLIENT_ID!;
     this.clientSecret = process.env.SLACK_CLIENT_SECRET!;
-    this.redirectUri = process.env.SLACK_REDIRECT_URI!;
+    this.redirectUri = process.env.SLACK_REDIRECT_URI!; 
 
     if (!this.clientId || !this.clientSecret || !this.redirectUri) {
       throw new Error(

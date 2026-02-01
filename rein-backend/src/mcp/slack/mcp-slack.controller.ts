@@ -36,13 +36,17 @@ export class McpSlackController {
       
       // Create a test commitment to send reminder
       const testCommitment = await this.slackService.createCommitment({
-        accountableUserId: body.userId,
+        userId: body.userId,
+        platformUserId: body.userId,
         commitmentText: 'Test commitment for Slack messaging',
-        anchorUserId: body.userId,
-        slackChannel: body.channel,
-        reminderFrequency: 'daily',
         deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        context: 'Slack connection test',
+        channelOrDm: body.channel,
       });
+
+      if (!testCommitment.success || !testCommitment.commitmentId) {
+        throw new Error('Failed to create commitment');
+      }
 
       // Send a test reminder
       const reminderResult = await this.slackService.sendReminder(testCommitment.commitmentId);
