@@ -6,6 +6,9 @@ export class ResolutionService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(userId: string, title: string, goal: string, roadmap: any) {
+    // Ensure user exists in the database
+    await this.ensureUserExists(userId);
+
     // Calculate start and end dates from roadmap
     const { startDate, endDate } = this.extractDatesFromRoadmap(roadmap);
 
@@ -19,6 +22,26 @@ export class ResolutionService {
         endDate,
       },
     });
+  }
+
+  /**
+   * Ensure user exists in database, create if not
+   */
+  private async ensureUserExists(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      // Create user if doesn't exist
+      await this.prisma.user.create({
+        data: {
+          id: userId,
+          email: null,
+          name: null,
+        },
+      });
+    }
   }
 
   async findAllByUser(userId: string) {
@@ -83,19 +106,19 @@ export class ResolutionService {
       return null;
     }
 
-    // Parse roadmap to extract tasks
+    // Parse roadmap to extract nodes
     const roadmap = resolution.roadmap as any;
-    const weeks = Array.isArray(roadmap) ? roadmap : [];
+    const stages = Array.isArray(roadmap) ? roadmap : [];
     
-    let allTasks: any[] = [];
-    weeks.forEach((week: any) => {
-      if (week.tasks && Array.isArray(week.tasks)) {
-        allTasks = [...allTasks, ...week.tasks];
+    let allNodes: any[] = [];
+    stages.forEach((stage: any) => {
+      if (stage.nodes && Array.isArray(stage.nodes)) {
+        allNodes = [...allNodes, ...stage.nodes];
       }
     });
 
-    const totalTasks = allTasks.length;
-    const completedTasks = allTasks.filter((task: any) => task.completed === true).length;
+    const totalTasks = allNodes.length;
+    const completedTasks = allNodes.filter((node: any) => node.completed === true).length;
     const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
     // Calculate streak (simplified - days with completed tasks in last 30 days)
@@ -122,7 +145,7 @@ export class ResolutionService {
     
     const endDate = resolution.endDate
       ? resolution.endDate.toISOString().split('T')[0]
-      : this.calculateTargetDate(resolution.createdAt, weeks.length);
+      : this.calculateTargetDate(resolution.createdAt, stages.length);
 
     return {
       resolution: {
@@ -151,17 +174,23 @@ export class ResolutionService {
     }
 
     const roadmap = resolution.roadmap as any;
-    const weeks = Array.isArray(roadmap) ? roadmap : [];
+    const stages = Array.isArray(roadmap) ? roadmap : [];
     
     let allTasks: any[] = [];
-    weeks.forEach((week: any, weekIndex: number) => {
-      if (week.tasks && Array.isArray(week.tasks)) {
-        const tasksWithWeek = week.tasks.map((task: any) => ({
-          ...task,
-          weekNumber: weekIndex + 1,
-          weekLabel: week.weekLabel || `Week ${weekIndex + 1}`,
+    stages.forEach((stage: any, stageIndex: number) => {
+      if (stage.nodes && Array.isArray(stage.nodes)) {
+        const tasksFromNodes = stage.nodes.map((node: any) => ({
+          id: node.id,
+          title: node.title,
+          description: node.description,
+          time: node.scheduledDate, // Map scheduledDate to time for display
+          completed: node.completed || false,
+          platform: 'calendar', // Default to calendar for now
+          stageNumber: stageIndex + 1,
+          stageTitle: stage.title,
+          resources: node.resources || [],
         }));
-        allTasks = [...allTasks, ...tasksWithWeek];
+        allTasks = [...allTasks, ...tasksFromNodes];
       }
     });
 
@@ -179,25 +208,35 @@ export class ResolutionService {
     }
 
     const roadmap = resolution.roadmap as any;
-    const weeks = Array.isArray(roadmap) ? roadmap : [];
+    const stages = Array.isArray(roadmap) ? roadmap : [];
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
     
-    let incompleteTasks: any[] = [];
-    weeks.forEach((week: any, weekIndex: number) => {
-      if (week.tasks && Array.isArray(week.tasks)) {
-        const tasks = week.tasks
-          .filter((task: any) => !task.completed)
-          .map((task: any) => ({
-            ...task,
-            weekNumber: weekIndex + 1,
-            weekLabel: week.weekLabel || `Week ${weekIndex + 1}`,
+    let upcomingNodes: any[] = [];
+    stages.forEach((stage: any, stageIndex: number) => {
+      if (stage.nodes && Array.isArray(stage.nodes)) {
+        const nodes = stage.nodes
+          .filter((node: any) => !node.completed && node.scheduledDate >= today)
+          .map((node: any) => ({
+            id: node.id,
+            title: node.title,
+            description: node.description,
+            time: node.scheduledDate,
+            completed: node.completed || false,
+            platform: 'calendar',
+            stageNumber: stageIndex + 1,
+            stageTitle: stage.title,
+            resources: node.resources || [],
           }));
-        incompleteTasks = [...incompleteTasks, ...tasks];
+        upcomingNodes = [...upcomingNodes, ...nodes];
       }
     });
 
+    // Sort by scheduledDate ascending
+    upcomingNodes.sort((a, b) => a.time.localeCompare(b.time));
+
     return {
-      tasks: incompleteTasks.slice(0, limit),
-      totalUpcoming: incompleteTasks.length,
+      tasks: upcomingNodes.slice(0, limit),
+      totalUpcoming: upcomingNodes.length,
     };
   }
 
@@ -209,21 +248,21 @@ export class ResolutionService {
 
     // Parse and update the roadmap
     const roadmap = resolution.roadmap as any;
-    const weeks = Array.isArray(roadmap) ? roadmap : [];
+    const stages = Array.isArray(roadmap) ? roadmap : [];
     
     let taskFound = false;
-    const updatedWeeks = weeks.map((week: any) => {
-      if (week.tasks && Array.isArray(week.tasks)) {
-        const updatedTasks = week.tasks.map((task: any) => {
-          if (task.id === taskId) {
+    const updatedStages = stages.map((stage: any) => {
+      if (stage.nodes && Array.isArray(stage.nodes)) {
+        const updatedNodes = stage.nodes.map((node: any) => {
+          if (node.id === taskId) {
             taskFound = true;
-            return { ...task, completed };
+            return { ...node, completed };
           }
-          return task;
+          return node;
         });
-        return { ...week, tasks: updatedTasks };
+        return { ...stage, nodes: updatedNodes };
       }
-      return week;
+      return stage;
     });
 
     if (!taskFound) {
@@ -232,7 +271,7 @@ export class ResolutionService {
 
     await this.prisma.resolution.update({
       where: { id, userId },
-      data: { roadmap: updatedWeeks },
+      data: { roadmap: updatedStages },
     });
 
     return { success: true, taskId, completed };
@@ -326,9 +365,9 @@ export class ResolutionService {
   }
 
   private extractDatesFromRoadmap(roadmap: any): { startDate: Date; endDate: Date } {
-    const weeks = Array.isArray(roadmap) ? roadmap : [];
+    const stages = Array.isArray(roadmap) ? roadmap : [];
     
-    if (weeks.length === 0) {
+    if (stages.length === 0) {
       // Default to 30 days if no roadmap
       const start = new Date();
       const end = new Date();
@@ -340,15 +379,15 @@ export class ResolutionService {
     let earliestStart: Date | null = null;
     let latestEnd: Date | null = null;
 
-    weeks.forEach((week: any) => {
-      if (week.startDate) {
-        const startDate = new Date(week.startDate);
+    stages.forEach((stage: any) => {
+      if (stage.startDate) {
+        const startDate = new Date(stage.startDate);
         if (!earliestStart || startDate < earliestStart) {
           earliestStart = startDate;
         }
       }
-      if (week.endDate) {
-        const endDate = new Date(week.endDate);
+      if (stage.endDate) {
+        const endDate = new Date(stage.endDate);
         if (!latestEnd || endDate > latestEnd) {
           latestEnd = endDate;
         }
@@ -359,7 +398,7 @@ export class ResolutionService {
     if (!earliestStart || !latestEnd) {
       const start = new Date();
       const end = new Date();
-      end.setDate(end.getDate() + (weeks.length * 7)); // Assume 1 week per stage
+      end.setDate(end.getDate() + (stages.length * 7)); // Assume 1 week per stage
       return { startDate: start, endDate: end };
     }
 

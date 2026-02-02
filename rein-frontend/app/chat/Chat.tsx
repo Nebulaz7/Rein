@@ -158,6 +158,7 @@ export default function ChatPage() {
     [],
   );
   const [savedResolutions, setSavedResolutions] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
 
   const MIN_SIDEBAR_WIDTH = 240;
   const MAX_SIDEBAR_WIDTH = 700;
@@ -166,6 +167,54 @@ export default function ChatPage() {
     e.preventDefault();
     setIsResizing(true);
   }, []);
+
+  // Function to check calendar connection status
+  const checkCalendarConnection = async (userId: string) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/mcp/calendar/status?userId=${userId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.connected || false;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to check calendar connection:', error);
+      return false;
+    }
+  };
+
+  // Function to check Slack connection status
+  const checkSlackConnection = async (userId: string) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/slack/status?userId=${userId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.connected || false;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to check Slack connection:', error);
+      return false;
+    }
+  };
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -287,6 +336,42 @@ export default function ChatPage() {
     hasInitializedRef.current = false;
     router.push("/home");
   };
+
+  // Fetch user and check integration statuses
+  useEffect(() => {
+    const fetchUserAndIntegrations = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          setUser(user);
+          
+          // Check integration statuses
+          const [calendarConnected, slackConnected] = await Promise.all([
+            checkCalendarConnection(user.id),
+            checkSlackConnection(user.id),
+          ]);
+
+          setIntegrations(prev => 
+            prev.map(integration => {
+              if (integration.id === 'google-calendar') {
+                return { ...integration, connected: calendarConnected };
+              }
+              if (integration.id === 'slack') {
+                return { ...integration, connected: slackConnected };
+              }
+              return integration;
+            })
+          );
+        }
+      } catch (error) {
+        console.error('Failed to fetch user or check integration statuses:', error);
+      }
+    };
+
+    fetchUserAndIntegrations();
+  }, []);
 
   // Fetch saved resolutions for current user
   useEffect(() => {
@@ -510,9 +595,17 @@ export default function ChatPage() {
     if (!session?.isReady && !session?.isAtLimit) return;
 
     // Check if at least one integration is selected
+    const connectedIntegrations = integrations.filter(i => i.connected);
+    if (connectedIntegrations.length === 0) {
+      setIntegrationError(
+        "Please connect at least one integration from the navbar first",
+      );
+      return;
+    }
+    
     if (selectedIntegrations.length === 0) {
       setIntegrationError(
-        "Please select at least one integration to sync with",
+        "Please select at least one connected integration to sync with",
       );
       return;
     }
@@ -788,15 +881,15 @@ export default function ChatPage() {
                           size="sm"
                         >
                           {isGeneratingRoadmap ? (
-                            <>
+                            <span className="flex items-center">
                               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                               Generating Plan...
-                            </>
+                            </span>
                           ) : (
-                            <>
+                            <span className="flex items-center">
                               <Play className="w-4 h-4 mr-2" />
                               Implement This Plan
-                            </>
+                            </span>
                           )}
                         </Button>
                         <Button
@@ -1002,6 +1095,16 @@ export default function ChatPage() {
                   <h3 className="text-sm font-medium text-muted-foreground">
                     Select integrations to sync
                   </h3>
+                  
+                  {/* Show message if no integrations are connected */}
+                  {integrations.filter(i => i.connected).length === 0 && (
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        No integrations connected yet. Connect integrations from the navbar to sync your resolution.
+                      </p>
+                    </div>
+                  )}
+                  
                   <div className="flex flex-col gap-2">
                     {integrations.map((integration) => (
                       <div

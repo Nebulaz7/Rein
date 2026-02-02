@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { GoogleGenAI, Type } from '@google/genai';
 import { PreprocessedGoal, MissingField } from './types/preprocessor';
+import { DateCalculator } from '../common/utils/date-calculator';
 
 @Injectable()
 export class GoalPreprocessorService {
@@ -63,7 +64,7 @@ GUIDELINES:
 - Make the goal concise but specific and actionable
 - Infer experience level from mentions of prior knowledge, tools used, or complexity of request
 - Only set formatPreference if they clearly prefer one style
-- Include timeframe only if mentioned or strongly implied
+- IMPORTANT: Extract timeframe in natural language format (e.g., "3 months", "6 weeks", "2 weeks", "in 90 days")
 - Capture any explicit focuses, constraints, or "avoid X" requests in specificFocus
 - If uncertain, make intelligent defaults (e.g., mixed format, null timeframe)
 
@@ -75,7 +76,7 @@ Respond with valid JSON only, matching the schema exactly.
 
     try {
       const response = await this.ai.models.generateContent({
-        model: 'gemini-2.5-flash-lite', // ← consider 1.5-flash for speed here
+        model: 'gemini-2.5-flash-lite',
         contents: prompt,
         config: {
           temperature: 0.2,
@@ -92,6 +93,13 @@ Respond with valid JSON only, matching the schema exactly.
 
       const parsed = JSON.parse(text);
 
+      // ────────────────────────────────────────────────
+      // NEW: Calculate totalDays from timeframe
+      // ────────────────────────────────────────────────
+      const totalDays = DateCalculator.parseTimeframeToTotalDays(
+        parsed.timeframe
+      );
+
       return {
         goal: parsed.goal,
         known: parsed.known || [],
@@ -99,6 +107,7 @@ Respond with valid JSON only, matching the schema exactly.
         formatPreference: parsed.formatPreference ?? undefined,
         timeframe: parsed.timeframe ?? undefined,
         specificFocus: parsed.specificFocus ?? undefined,
+        totalDays, // ← NEW: Add computed field
       };
     } catch (err: any) {
       console.error('Gemini preprocessing failed:', err.message);
@@ -148,9 +157,6 @@ Respond with valid JSON only, matching the schema exactly.
       });
     }
 
-    // Optional future rules (examples):
-    // if (parsed.known.length === 0 && parsed.experienceLevel === 'intermediate') { ... }
-
     return missing;
   }
 
@@ -166,5 +172,41 @@ Respond with valid JSON only, matching the schema exactly.
     const missingFields = this.getMissingFields(parsed);
 
     return { parsed, missingFields };
+  }
+
+  /**
+   * NEW: Get spacing information for a preprocessed goal
+   * Useful for UI to show "This plan will have daily/weekly tasks"
+   */
+  getSpacingInfo(preprocessed: PreprocessedGoal): {
+    totalDays: number;
+    nodeSpacing: number;
+    spacingDescription: string;
+    stageCount: number;
+    estimatedNodeCount: number;
+  } {
+    const totalDays = preprocessed.totalDays || 30;
+    const rule = DateCalculator.getSpacingRule(totalDays);
+    
+    let spacingDescription = '';
+    if (rule.nodeSpacing === 1) {
+      spacingDescription = 'daily tasks';
+    } else if (rule.nodeSpacing === 2 || rule.nodeSpacing === 3) {
+      spacingDescription = `tasks every ${rule.nodeSpacing} days`;
+    } else if (rule.nodeSpacing === 7) {
+      spacingDescription = 'weekly tasks';
+    } else if (rule.nodeSpacing === 14) {
+      spacingDescription = 'bi-weekly tasks';
+    }
+
+    const estimatedNodeCount = DateCalculator.getRecommendedNodeCount(totalDays);
+
+    return {
+      totalDays,
+      nodeSpacing: rule.nodeSpacing,
+      spacingDescription,
+      stageCount: rule.stageCount,
+      estimatedNodeCount,
+    };
   }
 }

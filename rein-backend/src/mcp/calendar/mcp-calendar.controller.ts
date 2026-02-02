@@ -102,6 +102,26 @@ export class McpCalendarController {
     }
   }
 
+  @Get('disconnect')
+  async disconnect(@Query('userId') userId: string) {
+    if (!userId) {
+      return { success: false, error: 'Missing userId' };
+    }
+
+    try {
+      await this.service.disconnect(userId);
+      return { 
+        success: true, 
+        message: 'Calendar disconnected successfully'
+      };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: 'Failed to disconnect calendar' 
+      };
+    }
+  }
+
   // Internal endpoint – called from ChatService
   @Post('execute')
   async execute(

@@ -14,6 +14,36 @@ import {
 } from "./components";
 import { resolutionAPI, type ResolutionStats, type ResolutionTask } from "@/lib/resolutions";
 import { supabase } from "@/lib/supabase";
+import { formatScheduledDate } from "@/lib/utils";
+
+/**
+ * Check if a date string (YYYY-MM-DD) is today
+ */
+function isToday(dateStr?: string): boolean {
+  if (!dateStr) return false;
+  const today = new Date();
+  const taskDate = new Date(dateStr);
+  return (
+    today.getFullYear() === taskDate.getFullYear() &&
+    today.getMonth() === taskDate.getMonth() &&
+    today.getDate() === taskDate.getDate()
+  );
+}
+
+/**
+ * Check if a date string (YYYY-MM-DD) is tomorrow
+ */
+function isTomorrow(dateStr?: string): boolean {
+  if (!dateStr) return false;
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const taskDate = new Date(dateStr);
+  return (
+    tomorrow.getFullYear() === taskDate.getFullYear() &&
+    tomorrow.getMonth() === taskDate.getMonth() &&
+    tomorrow.getDate() === taskDate.getDate()
+  );
+}
 
 interface DashboardProps {
   id: string;
@@ -102,10 +132,12 @@ export default function Dashboard({ id }: DashboardProps) {
 
           // Fetch all tasks
           const tasksData = await resolutionAPI.getTasks(id, user.id);
+          // Keep raw dates for filtering, don't format yet
           setTasks(tasksData.tasks);
 
           // Fetch upcoming tasks
           const upcomingData = await resolutionAPI.getUpcomingTasks(id, user.id, 5);
+          // Keep raw dates for filtering, don't format yet
           setUpcomingTasks(upcomingData.tasks);
         } else {
           // If no user, try without userId (public resolution)
@@ -113,9 +145,11 @@ export default function Dashboard({ id }: DashboardProps) {
           setStats(statsData);
 
           const tasksData = await resolutionAPI.getTasks(id);
+          // Keep raw dates for filtering, don't format yet
           setTasks(tasksData.tasks);
 
           const upcomingData = await resolutionAPI.getUpcomingTasks(id, undefined, 5);
+          // Keep raw dates for filtering, don't format yet
           setUpcomingTasks(upcomingData.tasks);
         }
       } catch (err) {
@@ -157,6 +191,7 @@ export default function Dashboard({ id }: DashboardProps) {
 
       // Refetch upcoming tasks
       const upcomingData = await resolutionAPI.getUpcomingTasks(id, userId, 5);
+      // Keep raw dates for filtering, don't format yet
       setUpcomingTasks(upcomingData.tasks);
     } catch (err) {
       console.error('Error updating task:', err);
@@ -243,28 +278,44 @@ export default function Dashboard({ id }: DashboardProps) {
           />
         );
       case "tasks":
-        // Convert ResolutionTask[] to Task[] format
-        const formattedTasks: Task[] = tasks.map(task => ({
+        // Filter tasks: only show today's tasks in main view
+        const todaysTasks = tasks.filter(task => isToday(task.time));
+        
+        // Filter upcoming: only show tomorrow's tasks
+        const tomorrowsTasks = upcomingTasks.filter(task => isTomorrow(task.time));
+        
+        // Convert ResolutionTask[] to Task[] format for today's tasks with formatted dates and resources
+        const formattedTasks: Task[] = todaysTasks.map(task => ({
           id: task.id,
           title: task.title,
-          description: task.description || `Week ${task.weekNumber}: ${task.weekLabel}`,
+          description: task.description,
           platform: (task.platform === 'jira' ? 'github' : task.platform) as "github" | "calendar" | "slack",
           completed: task.completed,
+          time: formatScheduledDate(task.time), // Format date for display
+          // Add resources if they exist in the task
+          resources: task.resources ? task.resources.map(resource => ({
+            type: resource.type as "article" | "video",
+            title: resource.title,
+            url: resource.url,
+          })) : undefined,
         }));
 
-        const formattedUpcoming = upcomingTasks.map(task => ({
+        // Format tomorrow's tasks with formatted dates
+        const formattedUpcoming = tomorrowsTasks.map(task => ({
           id: task.id,
           title: task.title,
-          time: task.date || `Week ${task.weekNumber}`,
+          time: formatScheduledDate(task.time), // Format date for display
           platform: (task.platform === 'jira' ? 'github' : task.platform) as "github" | "calendar" | "slack",
         }));
 
         return (
-          <TasksView
-            tasks={formattedTasks}
-            upcomingTasks={formattedUpcoming}
-            onTaskComplete={handleTaskComplete}
-          />
+          <React.Fragment key="tasks-view">
+            <TasksView
+              tasks={formattedTasks}
+              upcomingTasks={formattedUpcoming}
+              onTaskComplete={handleTaskComplete}
+            />
+          </React.Fragment>
         );
       case "analytics":
         return (

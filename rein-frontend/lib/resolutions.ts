@@ -18,6 +18,22 @@ export interface CreateResolutionData {
   roadmap: any;
 }
 
+export interface TaskResource {
+  type: "article" | "video";
+  title: string;
+  url: string;
+}
+
+export interface ResolutionTask {
+  id: string;
+  title: string;
+  description?: string;
+  platform: "github" | "calendar" | "slack" | "jira";
+  time?: string;
+  completed: boolean;
+  resources?: TaskResource[];
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export const resolutionAPI = {
@@ -191,9 +207,15 @@ export interface ResolutionTask {
   description?: string;
   platform: 'github' | 'calendar' | 'jira' | 'slack';
   completed: boolean;
-  weekNumber: number;
-  weekLabel: string;
-  date?: string;
+  time?: string; // scheduledDate from backend
+  stageNumber?: number;
+  stageTitle?: string;
+  resources?: Array<{
+    type: string;
+    title: string;
+    link: string;
+    description: string;
+  }>;
 }
 
 export interface ResolutionTasks {

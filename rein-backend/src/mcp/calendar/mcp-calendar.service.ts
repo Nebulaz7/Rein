@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { google } from 'googleapis';
 import { ParsedResolution } from '../../common/types/index';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { PrismaService } from '../../prisma/prisma.service';
 
 interface CalendarEvent {
   summary: string;
@@ -20,14 +20,8 @@ export interface CreatedEvent {
 @Injectable()
 export class McpCalendarService {
   private readonly logger = new Logger(McpCalendarService.name);
-  private supabase: SupabaseClient;
 
-  constructor() {
-    this.supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   async addRoadmapToCalendar(
     userId: string,
@@ -118,33 +112,54 @@ export class McpCalendarService {
   }
 
   async getTokensFromDb(userId: string): Promise<any | null> {
-    const { data, error } = await this.supabase
-      .from('profiles')
-      .select('calendar_tokens')
-      .eq('id', userId)
-      .single();
+    const connection = await this.prisma.calendarConnection.findUnique({
+      where: { userId },
+    });
 
-    if (error || !data?.calendar_tokens) {
+    if (!connection) {
+      this.logger.log(`No calendar connection found for user ${userId}`);
       return null;
     }
 
-    return data.calendar_tokens;
+    // Convert to Google OAuth token format
+    return {
+      access_token: connection.accessToken,
+      refresh_token: connection.refreshToken,
+      token_type: connection.tokenType,
+      expiry_date: connection.expiryDate ? Number(connection.expiryDate) : undefined,
+      scope: connection.scope,
+    };
   }
 
   private async saveTokensToDb(userId: string, tokens: any): Promise<void> {
-    const { error } = await this.supabase
-      .from('profiles')
-      .update({
-        calendar_tokens: tokens,
-        calendar_connected: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
+    // Convert expiry_date to string to avoid BigInt serialization issues
+    const expiryDateString = tokens.expiry_date ? String(tokens.expiry_date) : null;
+    
+    try {
+      await this.prisma.calendarConnection.upsert({
+        where: { userId },
+        create: {
+          userId,
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          tokenType: tokens.token_type,
+          expiryDate: expiryDateString,
+          scope: tokens.scope,
+        },
+        update: {
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          tokenType: tokens.token_type,
+          expiryDate: expiryDateString,
+          scope: tokens.scope,
+          updatedAt: new Date(),
+        },
+      });
 
-    if (error) {
+      this.logger.log(`Saved tokens for user ${userId}`);
+    } catch (error: any) {
       this.logger.error('Failed to save calendar tokens:', error.message);
-    } else {
-      this.logger.log(`Saved refreshed tokens for user ${userId}`);
+      throw new Error('Failed to save calendar connection');
     }
   }
 
@@ -152,6 +167,24 @@ export class McpCalendarService {
     this.logger.log(`Storing tokens for user ${userId}`);
     await this.saveTokensToDb(userId, tokens);
     this.logger.log(`Tokens stored successfully for user ${userId}`);
+  }
+
+  /**
+   * Disconnect calendar - remove tokens from database
+   */
+  async disconnect(userId: string): Promise<boolean> {
+    this.logger.log(`Disconnecting calendar for user ${userId}`);
+    
+    try {
+      await this.prisma.calendarConnection.delete({
+        where: { userId },
+      });
+      this.logger.log(`Calendar disconnected for user ${userId}`);
+      return true;
+    } catch (error: any) {
+      this.logger.error(`Failed to disconnect calendar: ${error.message}`);
+      return false;
+    }
   }
 
   // Keep generateEventsFromRoadmap unchanged
