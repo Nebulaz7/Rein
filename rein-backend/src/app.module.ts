@@ -13,6 +13,7 @@ import { McpCalendarModule } from './mcp/calendar/mcp-calendar.module';
 import { McpSlackModule } from './mcp/slack/mcp-slack.module';
 import { AnchorModule } from './anchor/anchor.module';
 import { SlackMessagingService } from './mcp/slack/slack.messaging';
+import { GitHubModule } from './mcp/github/github.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SlackMessagingService } from './mcp/slack/slack.messaging';
     ContextModule,
     PrismaModule,
     CommonModule,
+    GitHubModule,
     ResolutionModule,
     UserModule,
     McpCalendarModule,

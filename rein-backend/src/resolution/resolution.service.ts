@@ -121,9 +121,11 @@ export class ResolutionService {
     const completedTasks = allNodes.filter((node: any) => node.completed === true).length;
     const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-    // Calculate streak (simplified - days with completed tasks in last 30 days)
-    // For now, return a mock value - this would need task completion timestamps
-    const streak = 12; // TODO: Implement actual streak calculation with task history
+    // Get actual streak from database
+    const streakRecord = await this.prisma.streak.findUnique({
+      where: { userId: userId || resolution.userId },
+    });
+    const streak = streakRecord?.currentStreak || 0;
 
     // Health status based on progress
     let healthStatus = 'getting-started';
@@ -251,11 +253,16 @@ export class ResolutionService {
     const stages = Array.isArray(roadmap) ? roadmap : [];
     
     let taskFound = false;
+    let nodeScheduledDate: string | undefined;
+    let stageId: string | undefined;
+    
     const updatedStages = stages.map((stage: any) => {
       if (stage.nodes && Array.isArray(stage.nodes)) {
         const updatedNodes = stage.nodes.map((node: any) => {
           if (node.id === taskId) {
             taskFound = true;
+            nodeScheduledDate = node.scheduledDate;
+            stageId = stage.id;
             return { ...node, completed };
           }
           return node;
@@ -269,12 +276,146 @@ export class ResolutionService {
       throw new NotFoundException('Task not found');
     }
 
+    // Update roadmap in Resolution
     await this.prisma.resolution.update({
       where: { id, userId },
       data: { roadmap: updatedStages },
     });
 
+    // Create or update NodeProgress for persistent tracking
+    if (completed && nodeScheduledDate && stageId) {
+      await this.prisma.nodeProgress.upsert({
+        where: {
+          userId_resolutionId_nodeId: {
+            userId,
+            resolutionId: id,
+            nodeId: taskId,
+          },
+        },
+        update: {
+          completedAt: new Date(),
+          status: 'completed',
+          updatedAt: new Date(),
+        },
+        create: {
+          userId,
+          resolutionId: id,
+          nodeId: taskId,
+          stageId,
+          scheduledDate: new Date(nodeScheduledDate),
+          completedAt: new Date(),
+          status: 'completed',
+        },
+      });
+
+      // Update streak when task is completed
+      await this.updateUserStreak(userId);
+    } else if (!completed) {
+      // If marking as incomplete, delete the NodeProgress record
+      await this.prisma.nodeProgress.deleteMany({
+        where: {
+          userId,
+          resolutionId: id,
+          nodeId: taskId,
+        },
+      });
+
+      // Recalculate streak
+      await this.updateUserStreak(userId);
+    }
+
     return { success: true, taskId, completed };
+  }
+
+  /**
+   * Update user's streak based on completed tasks
+   */
+  private async updateUserStreak(userId: string): Promise<void> {
+    // Get all completed NodeProgress records for this user, ordered by completion date
+    const completedNodes = await this.prisma.nodeProgress.findMany({
+      where: {
+        userId,
+        status: 'completed',
+        completedAt: { not: null },
+      },
+      orderBy: { completedAt: 'desc' },
+      select: { completedAt: true },
+    });
+
+    if (completedNodes.length === 0) {
+      // No completed tasks, set streak to 0
+      await this.prisma.streak.upsert({
+        where: { userId },
+        update: {
+          currentStreak: 0,
+          lastActivity: new Date(),
+        },
+        create: {
+          userId,
+          currentStreak: 0,
+          longestStreak: 0,
+          lastActivity: new Date(),
+        },
+      });
+      return;
+    }
+
+    // Calculate streak
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get unique days with completions
+    const completionDays = new Set<string>();
+    completedNodes.forEach(node => {
+      if (node.completedAt) {
+        const date = new Date(node.completedAt);
+        date.setHours(0, 0, 0, 0);
+        completionDays.add(date.toISOString().split('T')[0]);
+      }
+    });
+
+    const sortedDays = Array.from(completionDays).sort().reverse();
+    
+    let currentStreak = 0;
+    let checkDate = new Date(today);
+
+    // Count consecutive days from today backwards
+    for (const dayStr of sortedDays) {
+      const dayDate = new Date(dayStr);
+      const diffDays = Math.floor((checkDate.getTime() - dayDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (diffDays === currentStreak) {
+        currentStreak++;
+      } else if (diffDays > currentStreak) {
+        break; // Gap in streak
+      }
+    }
+
+    // Get existing streak to compare with longest
+    const existingStreak = await this.prisma.streak.findUnique({
+      where: { userId },
+    });
+
+    const longestStreak = Math.max(
+      currentStreak,
+      existingStreak?.longestStreak || 0
+    );
+
+    // Update streak in database
+    await this.prisma.streak.upsert({
+      where: { userId },
+      update: {
+        currentStreak,
+        longestStreak,
+        lastActivity: new Date(),
+      },
+      create: {
+        userId,
+        currentStreak,
+        longestStreak,
+        lastActivity: new Date(),
+      },
+    });
   }
 
   private calculateTargetDate(startDate: Date, weekCount: number): string {

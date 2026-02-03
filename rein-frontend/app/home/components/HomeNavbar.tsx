@@ -21,6 +21,13 @@ interface UserProfile {
   provider: string | null;
 }
 
+interface GitHubAccount {
+  username: string;
+  avatarUrl: string;
+  email: string;
+  isActive: boolean;
+}
+
 const Navbar = () => {
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -151,6 +158,30 @@ const Navbar = () => {
     },
   ]);
 
+  // Function to check GitHub connection status
+  const checkGitHubConnection = async (userId: string) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/github/account?userId=${userId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.isActive || false;
+      }
+      return false;
+    } catch (error) {
+      console.error('GitHub not connected:', error);
+      return false;
+    }
+  };
+
   // Function to check calendar connection status
   const checkCalendarConnection = async (userId: string) => {
     try {
@@ -205,13 +236,17 @@ const Navbar = () => {
       if (!user?.id) return;
       
       try {
-        const [calendarConnected, slackConnected] = await Promise.all([
+        const [githubConnected, calendarConnected, slackConnected] = await Promise.all([
+          checkGitHubConnection(user.id),
           checkCalendarConnection(user.id),
           checkSlackConnection(user.id),
         ]);
 
         setIntegrations(prev => 
           prev.map(integration => {
+            if (integration.id === 'github') {
+              return { ...integration, connected: githubConnected };
+            }
             if (integration.id === 'calendar') {
               return { ...integration, connected: calendarConnected };
             }
@@ -231,9 +266,10 @@ const Navbar = () => {
     // Also check for OAuth callback in URL
     const params = new URLSearchParams(window.location.search);
     const slackStatus = params.get('slack');
+    const githubStatus = params.get('github');
     
-    if (slackStatus === 'connected') {
-      // Slack just connected, refresh status
+    if (slackStatus === 'connected' || githubStatus === 'connected') {
+      // Integration just connected, refresh status
       checkIntegrationStatuses();
       // Clean up URL
       window.history.replaceState({}, '', window.location.pathname);
@@ -297,6 +333,27 @@ const Navbar = () => {
     } else if (id === "slack") {
       // Redirect to Slack OAuth flow
       window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/slack/connect?userId=${userId}`;
+    } else if (id === "github") {
+      // GitHub OAuth flow
+      const redirectUri = `${window.location.origin}/auth/github/callback`;
+      
+      // Get OAuth URL from backend
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/github/auth-url?redirect_uri=${encodeURIComponent(redirectUri)}&userId=${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.url) {
+            window.location.href = data.url;
+          }
+        })
+        .catch(error => {
+          console.error('Failed to get GitHub auth URL:', error);
+          alert('Failed to connect GitHub. Please try again.');
+        });
     } else {
       console.log(`Connecting to ${id}... (not implemented yet)`);
     }

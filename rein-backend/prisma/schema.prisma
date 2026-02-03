@@ -165,3 +165,55 @@ model Streak {
   @@index([userId])
   @@map("streaks")
 }
+
+// Add these models to your existing schema.prisma file
+
+model GitHubAccount {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  githubId      String   @unique
+  username      String
+  email         String
+  avatarUrl     String?
+  accessToken   String   // Encrypt in production!
+  refreshToken  String?
+  scopes        String[] // Array of OAuth scopes
+  isActive      Boolean  @default(true)
+  webhookId     String?
+  webhookSecret String?
+  metadata      Json?    // Additional GitHub user data
+  connectedAt   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastSyncAt    DateTime?
+
+  // Relations
+  commits       GitHubCommit[]
+
+  @@index([userId])
+  @@index([githubId])
+  @@map("github_accounts")
+}
+
+model GitHubCommit {
+  id            String   @id @default(uuid())
+  accountId     String
+  repository    String   // Format: "owner/repo"
+  commitSha     String
+  commitMessage String   @db.Text
+  branch        String
+  author        Json     // { name, email, username }
+  url           String?
+  committedAt   DateTime
+  commitData    Json?    // Full webhook payload
+  createdAt     DateTime @default(now())
+  processed     Boolean  @default(false)
+  metadata      Json?
+
+  // Relations
+  account       GitHubAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([repository, commitSha])
+  @@index([accountId, createdAt])
+  @@index([repository, commitSha])
+  @@map("github_commits")
+}
