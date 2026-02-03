@@ -12,9 +12,9 @@ const NavBar = () => {
         >
           <Link href="/" className="text-[24px] pl-2">
             Rein{" "}
-            {/* <span className="text-sm text-white  p-[6px] border-solid border-[1.3px] border-white rounded-full">
+            <span className="text-sm text-white p-1 border-solid border-[1.3px] border-white rounded-full">
               Beta
-            </span> */}
+            </span>
           </Link>
         </div>
         <div className="flex items-center space-x-4">
