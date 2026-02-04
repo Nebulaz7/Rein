@@ -168,7 +168,7 @@ ${
     : '💡 Tip: Try to complete at least one task every day this week to build a strong streak.'
 }
 
-Keep up the momentum! 🚀
+Keep up the momentum! 
 — The Rein Team
   `.trim();
 };
