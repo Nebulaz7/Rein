@@ -40,7 +40,7 @@ export const streakLossTemplate = (data: StreakLossData): string => {
     
     <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 16px; margin: 24px 0; border-radius: 4px;">
       <p style="margin: 0; font-size: 15px; color: #166534;">
-        💡 <strong>Recovery Tip:</strong> Don't try to catch up on everything at once. 
+         <strong>Recovery Tip:</strong> Don't try to catch up on everything at once. 
         Start fresh today with one small task. Momentum builds from action, not perfection.
       </p>
     </div>
@@ -64,7 +64,7 @@ export const streakLossTemplate = (data: StreakLossData): string => {
     </ul>
     
     <p style="margin-top: 24px;">
-      We believe in you! 🚀<br>
+      We believe in you! <br>
       <strong>— The Rein Team</strong>
     </p>
   `;

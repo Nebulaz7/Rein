@@ -1,9 +1,4 @@
-/**
- * Base HTML template wrapper for all emails
- * Provides consistent branding, styling, and footer
- */
-export const baseTemplate = (content: string, preheader?: string): string => {
-  return `<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -264,5 +259,3 @@ export const baseTemplate = (content: string, preheader?: string): string => {
     </table>
   </body>
 </html>
-`.trim();
-};
