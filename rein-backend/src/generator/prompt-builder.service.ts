@@ -18,13 +18,20 @@ export class RoadmapPromptBuilder {
   /**
    * Build the main roadmap generation prompt
    */
-  buildPrompt(context: PromptContext): string {
-    const { originalMessage, goal, preprocessed, conversationContext, dateDistribution } = context;
-    const { known, experienceLevel, timeframe, formatPreference, specificFocus } = preprocessed;
+buildPrompt(context: PromptContext): string {
+  const { originalMessage, goal, preprocessed, conversationContext, dateDistribution } = context;
+  const { known, experienceLevel, timeframe, formatPreference, specificFocus, goalType, requiresPractical, practicalGuidance } = preprocessed;
 
-    const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0];
 
-    return `
+  // NEW: Build practical node instructions based on goal type
+  const practicalInstructions = this.buildPracticalNodeInstructions(
+    goalType ?? 'mixed',
+    requiresPractical ?? false,
+    practicalGuidance
+  );
+
+  return `
 You are an expert roadmap builder and learning specialist with a focus on creating COMPREHENSIVE, DETAILED learning paths.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -42,9 +49,14 @@ EXTRACTED CONTEXT:
 - Timeframe: ${timeframe || 'No specific timeframe provided'}
 - Format preference: ${formatPreference || 'mixed'}
 - Specific focus areas: ${specificFocus?.join(', ') || 'None specified'}
+- Goal type: ${goalType}
+- Requires practical: ${requiresPractical}
+- Practical guidance: ${practicalGuidance || 'General hands-on practice'}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ${conversationContext ? `CLARIFICATION CONVERSATION:\n${conversationContext}\n` : ''}
+
+${practicalInstructions}
 
 ═══════════════════════════════════════════════════════════════════════════════
 📅 CALCULATED DATE DISTRIBUTION (USE THESE EXACT DATES)
@@ -62,7 +74,7 @@ ${this.buildDateDistributionGuide(dateDistribution)}
 📚 ROADMAP STRUCTURE REQUIREMENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-${this.buildStructureRequirements(dateDistribution)}
+${this.buildStructureRequirements(dateDistribution, requiresPractical ?? false)}
 
 ═══════════════════════════════════════════════════════════════════════════════
 📖 CONTENT QUALITY STANDARDS
@@ -126,22 +138,24 @@ Examples where triggerCalendar = false:
         {
           "id": "node-1-1",
           "title": "Specific node title",
-          "description": "4-5 sentence detailed description covering context, outcomes, application...",
+          "description": "4-5 sentence detailed description...",
           "scheduledDate": "${dateDistribution.stages[0]?.nodeDates[0]}",
-          "resources": [
-            {
-              "type": "video" | "article" | "tutorial" | "interactive" | "documentation" | "project",
-              "title": "Resource title",
-              "link": "https://realistic-url.com/path",
-              "description": "2-sentence description explaining what's covered and why it's valuable"
-            }
-            // ... 4-5 resources total per node
-          ]
+          "isPractical": false,
+          "resources": [...]
+        },
+        // ... more theory nodes ...
+        {
+          "id": "node-1-practical",
+          "title": "Hands-on practical title",
+          "description": "4-5 sentence description of what to build/do...",
+          "scheduledDate": "${dateDistribution.stages[0]?.nodeDates[dateDistribution.stages[0]?.nodeDates.length - 1]}",
+          "isPractical": true,
+          "practicalType": "${this.getPracticalType(goalType ?? 'mixed')}",
+          "githubReady": ${goalType === 'coding-learning'},
+          "resources": [...]
         }
-        // ... more nodes with sequential scheduledDates from the provided list
       ]
     }
-    // ... more stages following the date distribution
   ],
   "triggerCalendar": boolean,
   "calendarIntentReason": "Brief explanation if true, null if false"
@@ -153,16 +167,174 @@ Examples where triggerCalendar = false:
 
 1. Use EXACT dates provided above - do not calculate your own
 2. ${dateDistribution.stageCount} stages total
-3. ${dateDistribution.stages.reduce((sum, s) => sum + s.nodeDates.length, 0)} nodes total
+3. ${dateDistribution.stages.reduce((sum, s) => sum + s.nodeDates.length, 0)} nodes total${requiresPractical ? ` (includes ${dateDistribution.stageCount} practical nodes)` : ''}
 4. 4-5 resources per node (NOT 3!)
 5. Deep, educational descriptions (4-5 sentences for nodes)
 6. Mix resource types: ${this.getResourceMixGuidance(formatPreference)}
 7. Only reputable sources (MDN, official docs, O'Reilly, FreeCodeCamp, etc.)
 8. Sequential dates - verify no gaps or overlaps
+${requiresPractical ? '9. ONE practical node per stage as the FINAL node in that stage' : ''}
 
 Generate valid JSON matching the schema. Prioritize DEPTH and QUALITY over speed.
 `.trim();
+}
+
+/**
+ * Build practical node instructions based on goal type
+ */
+private buildPracticalNodeInstructions(
+  goalType: string,
+  requiresPractical: boolean,
+  practicalGuidance?: string
+): string {
+  if (!requiresPractical) {
+    return `
+═══════════════════════════════════════════════════════════════════════════════
+⚠️ NO PRACTICAL NODES REQUIRED
+═══════════════════════════════════════════════════════════════════════════════
+This is a pure knowledge/theory goal. Focus on comprehensive learning resources.
+All nodes should be educational (theory, concepts, frameworks).
+`;
   }
+
+  const baseInstructions = `
+═══════════════════════════════════════════════════════════════════════════════
+🛠️ PRACTICAL NODE REQUIREMENTS (CRITICAL)
+═══════════════════════════════════════════════════════════════════════════════
+
+STRUCTURE:
+- Each stage MUST have EXACTLY 1 practical node as its FINAL node
+- Theory nodes come first, practical node comes last in each stage
+- Practical node should synthesize and apply all concepts from that stage
+
+PRACTICAL NODE SPECIFICATIONS:
+- Set "isPractical": true
+- Set "practicalType": "${this.getPracticalType(goalType)}"
+- Set "githubReady": ${goalType === 'coding-learning'}
+- Title should be action-oriented (e.g., "Build...", "Create...", "Implement...")
+- Description (4-5 sentences):
+  ✓ What to build/create/do
+  ✓ Which concepts from the stage it applies
+  ✓ Expected deliverable/outcome
+  ✓ Success criteria (how to know you've completed it)
+  ✓ Why this practical matters for real-world application
+
+GUIDANCE: ${practicalGuidance || 'Create hands-on exercises that apply stage concepts'}
+`;
+
+  if (goalType === 'coding-learning') {
+    return baseInstructions + `
+
+CODING-SPECIFIC PRACTICAL NODES:
+- Must be actual coding projects that can be committed to GitHub
+- Include starter templates or scaffolding resources
+- Provide step-by-step tutorial as one resource
+- Suggest GitHub repo structure in description
+- Examples:
+  * "Build a Todo App with React Hooks"
+  * "Create a REST API with Express and PostgreSQL"
+  * "Implement User Authentication with JWT"
+  
+PRACTICAL NODE RESOURCES (4-5):
+- At least 1 starter template or boilerplate repo
+- At least 1 step-by-step tutorial
+- At least 1 reference documentation
+- Optional: video walkthrough, testing guide
+`;
+  } else if (goalType === 'non-coding-learning') {
+    return baseInstructions + `
+
+NON-CODING PRACTICAL NODES:
+- Must be tangible deliverables (documents, presentations, case studies)
+- Should apply theoretical knowledge to realistic scenarios
+- Examples:
+  * "Write a Data Governance Policy for a Fictional Company"
+  * "Create a Marketing Strategy Deck for a Product Launch"
+  * "Conduct a Mock GDPR Compliance Audit"
+  
+PRACTICAL NODE RESOURCES (4-5):
+- Templates or frameworks to follow
+- Real-world examples to reference
+- Evaluation criteria or rubrics
+- Tools or software recommendations
+`;
+  } else if (goalType === 'execution') {
+    return baseInstructions + `
+
+EXECUTION-FOCUSED PRACTICAL NODES:
+- Each node should be a concrete milestone or deliverable
+- Should have clear "done" criteria
+- Examples:
+  * "Ship MVP Landing Page with Email Capture"
+  * "Launch Beta to First 10 Users and Collect Feedback"
+  * "Complete Market Research Report"
+  
+PRACTICAL NODE RESOURCES (4-5):
+- Tools and platforms needed
+- Process guides and checklists
+- Examples of similar executions
+- Metrics and success criteria
+`;
+  } else { // mixed
+    return baseInstructions + `
+
+MIXED GOAL PRACTICAL NODES:
+- Balance between learning exercises and execution milestones
+- Adapt to the specific nature of each stage
+- Use coding-style practicals for technical stages
+- Use deliverable-style practicals for strategic stages
+`;
+  }
+}
+
+/**
+ * Get practical type string based on goal type
+ */
+private getPracticalType(goalType: string): string {
+  switch (goalType) {
+    case 'coding-learning':
+      return 'github-project';
+    case 'non-coding-learning':
+      return 'document-deliverable';
+    case 'execution':
+      return 'general-exercise';
+    case 'mixed':
+      return 'github-project'; // Default to code if mixed
+    default:
+      return 'general-exercise';
+  }
+}
+
+/**
+ * Update structure requirements to account for practical nodes
+ */
+private buildStructureRequirements(distribution: RoadmapDateDistribution, requiresPractical: boolean): string {
+  const totalNodes = distribution.stages.reduce((sum, s) => sum + s.nodeDates.length, 0);
+  const practicalNodes = requiresPractical ? distribution.stageCount : 0;
+  const theoryNodes = totalNodes - practicalNodes;
+  const totalResources = totalNodes * 4.5;
+
+  return `
+REQUIRED STRUCTURE:
+├── ${distribution.stageCount} stages (following date distribution above)
+├── ${totalNodes} nodes total${requiresPractical ? ` (${theoryNodes} theory + ${practicalNodes} practical)` : ''}
+├── ~${Math.round(totalResources)} resources total (4-5 per node)
+└── Each node has a scheduledDate from the provided list
+
+${requiresPractical ? `
+PRACTICAL NODE PLACEMENT:
+- 1 practical node per stage
+- Practical node is ALWAYS the last node in each stage
+- Use the last available date in each stage for the practical node
+- Theory nodes use earlier dates in the stage
+
+` : ''}STAGE PROGRESSION:
+- Stage 1 (20%): Foundations - broad concepts, definitions, why it matters
+- Stage 2 (25%): Core skills - main techniques, tools, frameworks
+- Stage 3 (30%): Applied practice - projects, exercises, real scenarios
+- Stage 4 (20%): Advanced - optimization, best practices, edge cases
+- Stage 5+ (5%): Mastery - portfolio projects, teaching others (if applicable)`;
+}
 
   /**
    * Build date distribution guide with specific dates for each stage/node
@@ -179,27 +351,7 @@ ${nodesList}`;
     }).join('\n');
   }
 
-  /**
-   * Build structure requirements based on calculated distribution
-   */
-  private buildStructureRequirements(distribution: RoadmapDateDistribution): string {
-    const totalNodes = distribution.stages.reduce((sum, s) => sum + s.nodeDates.length, 0);
-    const totalResources = totalNodes * 4.5; // avg 4-5 per node
 
-    return `
-REQUIRED STRUCTURE:
-├── ${distribution.stageCount} stages (following date distribution above)
-├── ${totalNodes} nodes total (distributed across stages as shown)
-├── ~${Math.round(totalResources)} resources total (4-5 per node)
-└── Each node has a scheduledDate from the provided list
-
-STAGE PROGRESSION:
-- Stage 1 (20%): Foundations - broad concepts, definitions, why it matters
-- Stage 2 (25%): Core skills - main techniques, tools, frameworks
-- Stage 3 (30%): Applied practice - projects, exercises, real scenarios
-- Stage 4 (20%): Advanced - optimization, best practices, edge cases
-- Stage 5+ (5%): Mastery - portfolio projects, teaching others (if applicable)`;
-  }
 
   /**
    * Build resource guidelines based on format preference

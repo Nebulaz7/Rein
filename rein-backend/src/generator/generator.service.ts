@@ -14,6 +14,13 @@ export interface ResolutionResponse {
   resolution: ParsedResolution;
   shouldTriggerCalendar: boolean;
   calendarIntentReason?: string;
+
+  githubSyncMetadata?: {
+    shouldSyncGitHub: boolean;
+    practicalNodeCount: number;
+    goalType: string;
+    suggestedPlatforms: string[];
+  };
 }
 
 @Injectable()
@@ -67,58 +74,71 @@ export class GeneratorService {
     });
 
     // Define enhanced response schema with dates and more resources
-    const responseSchema = {
-      type: Type.OBJECT,
-      properties: {
-        title: { type: Type.STRING },
-        resolution: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              id: { type: Type.STRING },
-              title: { type: Type.STRING },
-              description: { type: Type.STRING },
-              startDate: { type: Type.STRING },
-              endDate: { type: Type.STRING },
-              nodes: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    id: { type: Type.STRING },
-                    title: { type: Type.STRING },
-                    description: { type: Type.STRING },
-                    scheduledDate: { type: Type.STRING }, // ← NEW: Node-level date
-                    resources: {
-                      type: Type.ARRAY,
-                      items: {
-                        type: Type.OBJECT,
-                        properties: {
-                          type: { type: Type.STRING },
-                          title: { type: Type.STRING },
-                          link: { type: Type.STRING },
-                          description: { type: Type.STRING },
-                        },
-                        required: ['type', 'title', 'link', 'description'],
-                      },
+const responseSchema = {
+  type: Type.OBJECT,
+  properties: {
+    title: { type: Type.STRING },
+    resolution: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          id: { type: Type.STRING },
+          title: { type: Type.STRING },
+          description: { type: Type.STRING },
+          startDate: { type: Type.STRING },
+          endDate: { type: Type.STRING },
+          nodes: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                title: { type: Type.STRING },
+                description: { type: Type.STRING },
+                scheduledDate: { type: Type.STRING },
+                // NEW: Practical node fields
+                isPractical: { 
+                  type: Type.BOOLEAN,
+                  nullable: true,
+                },
+                practicalType: { 
+                  type: Type.STRING,
+                  nullable: true,
+                },
+                githubReady: { 
+                  type: Type.BOOLEAN,
+                  nullable: true,
+                },
+                resources: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      type: { type: Type.STRING },
+                      title: { type: Type.STRING },
+                      link: { type: Type.STRING },
+                      description: { type: Type.STRING },
                     },
+                    required: ['type', 'title', 'link', 'description'],
                   },
-                  required: ['id', 'title', 'description', 'scheduledDate', 'resources'],
                 },
               },
+              required: ['id', 'title', 'description', 'scheduledDate', 'resources'],
             },
-            required: ['id', 'title', 'description', 'startDate', 'endDate', 'nodes'],
           },
         },
-        triggerCalendar: { type: Type.BOOLEAN },
-        calendarIntentReason: { 
-          type: Type.STRING,
-          nullable: true,
-        },
+        required: ['id', 'title', 'description', 'startDate', 'endDate', 'nodes'],
       },
-      required: ['title', 'resolution', 'triggerCalendar'],
-    };
+    },
+    triggerCalendar: { type: Type.BOOLEAN },
+    calendarIntentReason: { 
+      type: Type.STRING,
+      nullable: true,
+    },
+  },
+  required: ['title', 'resolution', 'triggerCalendar'],
+};
 
     // Build comprehensive prompt using the prompt builder
     const fullPrompt = this.promptBuilder.buildPrompt({
@@ -160,12 +180,27 @@ export class GeneratorService {
       // Generate a polished description for display
       const description = await this.generateDescription(cleanTitle, parsed.resolution);
 
+      // Extract practical nodes for GitHub sync metadata
+      const practicalNodes = parsed.resolution
+        .flatMap(stage => stage.nodes)
+        .filter(node => node.isPractical === true);
+
+      const githubReadyNodes = practicalNodes.filter(node => node.githubReady === true);
+
       return {
         title: cleanTitle,
         description,
         resolution: parsed.resolution,
         shouldTriggerCalendar: parsed.triggerCalendar,
         calendarIntentReason: parsed.calendarIntentReason ?? undefined,
+        
+        // NEW: Add GitHub sync metadata
+        githubSyncMetadata: {
+          shouldSyncGitHub: githubReadyNodes.length > 0,
+          practicalNodeCount: githubReadyNodes.length,
+          goalType: preprocessed.goalType ?? 'mixed',
+          suggestedPlatforms: preprocessed.suggestedPlatforms ?? [],
+        },
       };
     } catch (err: any) {
       console.error('❌ Gemini generation failed:', err.message);

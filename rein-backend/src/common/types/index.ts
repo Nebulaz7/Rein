@@ -25,7 +25,11 @@ export interface ResolutionNode {
   description: string; // Now expects 4-5 sentences
   scheduledDate: string; // ← NEW: ISO date (YYYY-MM-DD) when user should tackle this
   resources: Resource[]; // Now expects 4-5 resources per node
-  estimatedDuration?: string; // ← OPTIONAL: "2-3 hours", "1 day", etc.
+  estimatedDuration?: string;
+
+  isPractical?: boolean;
+  practicalType?: PracticalType;
+  githubReady?: boolean;
 }
 
 /**
@@ -39,6 +43,12 @@ export interface ResolutionStage {
   endDate: string; // ISO date (YYYY-MM-DD)
   nodes: ResolutionNode[];
 }
+
+export type PracticalType =
+  | 'github-project'
+  | 'document-deliverable'
+  | 'calendar-activity'
+  | 'general-exercise';
 
 /**
  * Complete parsed resolution (array of stages)
@@ -126,3 +136,4 @@ export interface RoadmapProgress {
     daysOverdue: number;
   }>;
 }
+

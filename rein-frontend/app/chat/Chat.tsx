@@ -216,6 +216,30 @@ export default function ChatPage() {
     }
   };
 
+  // Function to check GitHub connection status
+  const checkGitHubConnection = async (userId: string) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/github/account?userId=${userId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.isActive || false;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to check GitHub connection:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
@@ -348,9 +372,10 @@ export default function ChatPage() {
           setUser(user);
           
           // Check integration statuses
-          const [calendarConnected, slackConnected] = await Promise.all([
+          const [calendarConnected, slackConnected, githubConnected] = await Promise.all([
             checkCalendarConnection(user.id),
             checkSlackConnection(user.id),
+            checkGitHubConnection(user.id),
           ]);
 
           setIntegrations(prev => 
@@ -360,6 +385,9 @@ export default function ChatPage() {
               }
               if (integration.id === 'slack') {
                 return { ...integration, connected: slackConnected };
+              }
+              if (integration.id === 'github') {
+                return { ...integration, connected: githubConnected };
               }
               return integration;
             })

@@ -15,9 +15,12 @@ model User {
   sessions  ClarificationSession[]
   resolutions  Resolution[]    
   nodeProgress NodeProgress[]  
-  streak       Streak?        
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  lastWeeklyDigest   DateTime?
+  lastStreakReminder DateTime?
+  emailPreferences   EmailPreferences?  // NEW
+  emailLogs          EmailLog[] 
 
   @@map("users")
 }
@@ -49,10 +52,11 @@ model Resolution {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade) // ✅ ADDED
-  nodeProgress NodeProgress[] // ✅ ADDED
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodeProgress NodeProgress[]
+  streak       Streak?
 
-  @@index([userId]) // ✅ ADDED
+  @@index([userId])
   @@map("resolutions")
 }
 
@@ -153,16 +157,16 @@ model NodeProgress {
 
 model Streak {
   id            String   @id @default(uuid())
-  userId        String   @unique
+  resolutionId  String   @unique
   currentStreak Int      @default(0)
   longestStreak Int      @default(0)
   lastActivity  DateTime @default(now())
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resolution Resolution @relation(fields: [resolutionId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@index([resolutionId])
   @@map("streaks")
 }
 
@@ -216,4 +220,43 @@ model GitHubCommit {
   @@index([accountId, createdAt])
   @@index([repository, commitSha])
   @@map("github_commits")
+}
+
+model EmailLog {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type          String   // "welcome", "streak_loss", "streak_reminder", "weekly_digest"
+  status        String   // "sent", "failed", "bounced"
+  
+  sentAt        DateTime @default(now())
+  errorMessage  String?  @db.Text
+  metadata      Json?    // Additional data (e.g., Resend ID, template data)
+  
+  @@index([userId, type])
+  @@index([sentAt])
+  @@index([userId, type, sentAt])
+  @@map("email_logs")
+}
+
+model EmailPreferences {
+  id        String  @id @default(uuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  welcomeEmail      Boolean @default(true)
+  streakLossAlert   Boolean @default(true)
+  streakReminder    Boolean @default(true)
+  weeklyDigest      Boolean @default(true)
+  milestoneEmails   Boolean @default(true)
+  
+  reminderTime      String  @default("18:00") // HH:MM format (e.g., "18:00" for 6 PM)
+  digestDay         String  @default("sunday") // Day of week for digest
+  timezone          String  @default("UTC")     // User's timezone (e.g., "America/New_York")
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("email_preferences")
 }

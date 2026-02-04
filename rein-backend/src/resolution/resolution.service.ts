@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/services/email.service';
 
 @Injectable()
 export class ResolutionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   async create(userId: string, title: string, goal: string, roadmap: any) {
     // Ensure user exists in the database
@@ -12,7 +16,7 @@ export class ResolutionService {
     // Calculate start and end dates from roadmap
     const { startDate, endDate } = this.extractDatesFromRoadmap(roadmap);
 
-    return await this.prisma.resolution.create({
+    const resolution = await this.prisma.resolution.create({
       data: {
         userId,
         title,
@@ -20,8 +24,14 @@ export class ResolutionService {
         roadmap,
         startDate,
         endDate,
+        status: 'active',
       },
     });
+
+    // ✅ Send welcome email for FIRST resolution
+    await this.sendWelcomeEmailIfFirst(userId, resolution);
+
+    return resolution;
   }
 
   /**
@@ -121,9 +131,9 @@ export class ResolutionService {
     const completedTasks = allNodes.filter((node: any) => node.completed === true).length;
     const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-    // Get actual streak from database
+    // Get actual streak from database (per resolution)
     const streakRecord = await this.prisma.streak.findUnique({
-      where: { userId: userId || resolution.userId },
+      where: { resolutionId: id },
     });
     const streak = streakRecord?.currentStreak || 0;
 
@@ -309,7 +319,7 @@ export class ResolutionService {
       });
 
       // Update streak when task is completed
-      await this.updateUserStreak(userId);
+      await this.updateResolutionStreak(id);
     } else if (!completed) {
       // If marking as incomplete, delete the NodeProgress record
       await this.prisma.nodeProgress.deleteMany({
@@ -321,20 +331,35 @@ export class ResolutionService {
       });
 
       // Recalculate streak
-      await this.updateUserStreak(userId);
+      await this.updateResolutionStreak(id);
     }
 
     return { success: true, taskId, completed };
   }
 
   /**
-   * Update user's streak based on completed tasks
+   * Update resolution's streak based on completed tasks
    */
-  private async updateUserStreak(userId: string): Promise<void> {
-    // Get all completed NodeProgress records for this user, ordered by completion date
+  private async updateResolutionStreak(resolutionId: string): Promise<void> {
+    // Get resolution with user and streak data
+    const resolution = await this.prisma.resolution.findUnique({
+      where: { id: resolutionId },
+      include: { 
+        streak: true,
+        user: {
+          include: { emailPreferences: true }
+        },
+      },
+    });
+
+    if (!resolution) return;
+
+    const oldStreak = resolution.streak?.currentStreak || 0;
+
+    // Get all completed NodeProgress records for this resolution, ordered by completion date
     const completedNodes = await this.prisma.nodeProgress.findMany({
       where: {
-        userId,
+        resolutionId,
         status: 'completed',
         completedAt: { not: null },
       },
@@ -345,13 +370,13 @@ export class ResolutionService {
     if (completedNodes.length === 0) {
       // No completed tasks, set streak to 0
       await this.prisma.streak.upsert({
-        where: { userId },
+        where: { resolutionId },
         update: {
           currentStreak: 0,
           lastActivity: new Date(),
         },
         create: {
-          userId,
+          resolutionId,
           currentStreak: 0,
           longestStreak: 0,
           lastActivity: new Date(),
@@ -393,7 +418,7 @@ export class ResolutionService {
 
     // Get existing streak to compare with longest
     const existingStreak = await this.prisma.streak.findUnique({
-      where: { userId },
+      where: { resolutionId },
     });
 
     const longestStreak = Math.max(
@@ -403,19 +428,86 @@ export class ResolutionService {
 
     // Update streak in database
     await this.prisma.streak.upsert({
-      where: { userId },
+      where: { resolutionId },
       update: {
         currentStreak,
         longestStreak,
         lastActivity: new Date(),
       },
       create: {
-        userId,
+        resolutionId,
         currentStreak,
         longestStreak,
         lastActivity: new Date(),
       },
     });
+
+    // ✅ Send streak loss alert if streak broke
+    await this.sendStreakLossAlertIfNeeded(
+      resolution,
+      oldStreak,
+      currentStreak,
+      longestStreak,
+    );
+  }
+
+  /**
+   * Send streak loss alert email if streak dropped to 0
+   */
+  private async sendStreakLossAlertIfNeeded(
+    resolution: any,
+    oldStreak: number,
+    newStreak: number,
+    longestStreak: number,
+  ): Promise<void> {
+    try {
+      const shouldSendAlert = 
+        oldStreak > 0 && 
+        newStreak === 0 && 
+        resolution.user.email &&
+        (!resolution.user.emailPreferences || 
+         resolution.user.emailPreferences.streakLossAlert !== false);
+
+      if (!shouldSendAlert) return;
+
+      // Get missed tasks count
+      const missedTasks = await this.prisma.nodeProgress.count({
+        where: {
+          resolutionId: resolution.id,
+          status: 'pending',
+          scheduledDate: { lt: new Date() },
+        },
+      });
+
+      // Calculate progress
+      const totalNodes = await this.prisma.nodeProgress.count({
+        where: { resolutionId: resolution.id },
+      });
+      const completedNodes = await this.prisma.nodeProgress.count({
+        where: { resolutionId: resolution.id, status: 'completed' },
+      });
+      const progressPercent = totalNodes > 0 
+        ? Math.round((completedNodes / totalNodes) * 100) 
+        : 0;
+
+      await this.emailService.sendStreakLossAlert(
+        resolution.user.email,
+        resolution.user.id,
+        {
+          userName: resolution.user.name || 'there',
+          lostStreak: oldStreak,
+          longestStreak: longestStreak,
+          lastActivityDate: this.formatDate(
+            resolution.streak?.lastActivity || new Date()
+          ),
+          missedTasksCount: missedTasks,
+          currentProgress: progressPercent,
+        }
+      );
+    } catch (error) {
+      console.error('Failed to send streak loss alert:', error);
+      // Don't throw - email failure shouldn't block streak update
+    }
   }
 
   private calculateTargetDate(startDate: Date, weekCount: number): string {
@@ -544,5 +636,78 @@ export class ResolutionService {
     }
 
     return { startDate: earliestStart, endDate: latestEnd };
+  }
+
+  /**
+   * Send welcome email if this is the user's first resolution
+   */
+  private async sendWelcomeEmailIfFirst(userId: string, resolution: any): Promise<void> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { 
+          resolutions: true,
+          emailPreferences: true,
+        },
+      });
+
+      if (!user || !user.email) return;
+
+      // Only send if this is their first resolution and they haven't opted out
+      const shouldSendWelcome = 
+        user.resolutions.length === 1 && 
+        (!user.emailPreferences || user.emailPreferences.welcomeEmail !== false);
+
+      if (!shouldSendWelcome) return;
+
+      // Extract first node from roadmap
+      const roadmap = resolution.roadmap as any;
+      let firstNodeTitle = 'Getting started';
+      let firstNodeDate = 'Soon';
+      let totalNodes = 0;
+
+      if (Array.isArray(roadmap)) {
+        for (const stage of roadmap) {
+          if (stage.nodes && Array.isArray(stage.nodes)) {
+            totalNodes += stage.nodes.length;
+            if (stage.nodes.length > 0 && firstNodeTitle === 'Getting started') {
+              firstNodeTitle = stage.nodes[0].title;
+              firstNodeDate = stage.nodes[0].scheduledDate 
+                ? this.formatDate(new Date(stage.nodes[0].scheduledDate))
+                : 'Soon';
+            }
+          }
+        }
+      }
+
+      // Calculate duration
+      const durationInDays = resolution.endDate && resolution.startDate
+        ? Math.ceil(
+            (new Date(resolution.endDate).getTime() - 
+             new Date(resolution.startDate).getTime()) / 
+            (1000 * 60 * 60 * 24)
+          )
+        : 90;
+
+      await this.emailService.sendWelcomeEmail(user.email, user.id, {
+        userName: user.name || 'there',
+        resolutionTitle: resolution.title,
+        totalNodes,
+        durationInDays,
+        firstNodeTitle,
+        firstNodeDate,
+      });
+    } catch (error) {
+      console.error('Failed to send welcome email:', error);
+      // Don't throw - email failure shouldn't block resolution creation
+    }
+  }
+
+  private formatDate(date: Date): string {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+    });
   }
 }

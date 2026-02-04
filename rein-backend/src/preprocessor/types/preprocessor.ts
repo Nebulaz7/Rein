@@ -6,6 +6,11 @@ export interface PreprocessedGoal {
   timeframe?: string;
   specificFocus?: string[];
   totalDays?: number;
+  // NEW: Goal classification fields
+  goalType?: GoalType;
+  requiresPractical?: boolean;
+  suggestedPlatforms?: PracticalPlatform[];
+  practicalGuidance?: string;
 }
 
 export interface MissingField {
@@ -13,3 +18,11 @@ export interface MissingField {
   reason: string;
   priority: 1 | 2;
 }
+
+export type GoalType =
+  | 'coding-learning'
+  | 'non-coding-learning'
+  | 'execution'
+  | 'mixed';
+
+export type PracticalPlatform = 'github' | 'calendar' | 'slack';
