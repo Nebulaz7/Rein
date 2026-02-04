@@ -2,12 +2,14 @@
 
 import React from "react";
 import CardSwap, { Card } from "../animations/CardSwap";
-import { Target, Brain, Calendar, Badge, Trophy, Zap } from "lucide-react";
+import { Target, Brain, Calendar, Trophy, Zap } from "lucide-react";
 import Grainient from "../animations/Grainient";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 const Hero = () => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center px-6 lg:pt-48 md:px-12 lg:px-24 pt-24 overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center px-6 lg:pt-40 md:px-12 lg:px-24 pt-24 overflow-hidden">
       {/* Grainient Background */}
       <div className="absolute inset-0 -z-10">
         <Grainient
@@ -40,30 +42,45 @@ const Hero = () => {
 
       <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
         {/* Text Section */}
-        <section className="pt-1 pb-20 px-4 text-left">
-          <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter mb-6">
+        <section className="pt-1 pb-10 lg:pb-20 px-4 text-left">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-6 animate-fade-in">
+            <Badge
+              variant="outline"
+              className="border-primary/50 text-primary text-[10px] uppercase tracking-widest"
+            >
+              v1.0 Agent Active
+            </Badge>
+            <span className="text-xs font-medium text-primary/80">
+              Rein is now in open beta
+            </span>
+          </div>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter mb-6">
             EXECUTE <br />
             GOALS WITH&nbsp;
             <span className="text-primary italic">REIN.</span>
           </h1>
 
-          <p className="max-w-2xl mx-auto text-lg md:text-xl font-medium text-muted-foreground mb-10">
+          <p className="max-w-2xl text-base sm:text-lg md:text-xl font-medium text-muted-foreground mb-8 lg:mb-10">
             Turn vague goals into real-world commits, events, and streaks. Rein
             is the bridge between your intentions and your tools.
           </p>
 
           <div className="flex flex-wrap gap-4 mt-4">
-            <button className="bg-primary cursor-pointer text-primary-foreground px-6 py-3 rounded-full font-medium hover:opacity-90 transition-opacity">
-              Get Started
-            </button>
-            <button className="border border-border cursor-pointer px-6 py-3 rounded-full font-medium hover:bg-muted transition-colors">
-              Learn More
-            </button>
+            <Link href="/signin">
+              <button className="bg-primary cursor-pointer text-primary-foreground px-5 sm:px-6 py-2.5 sm:py-3 rounded-full font-medium hover:opacity-90 transition-opacity">
+                Get Started
+              </button>
+            </Link>
+            <Link href="/#features">
+              <button className="border border-border cursor-pointer px-5 sm:px-6 py-2.5 sm:py-3 rounded-full font-medium hover:bg-muted transition-colors">
+                Learn More
+              </button>
+            </Link>
           </div>
         </section>
 
-        {/* Illustration Section */}
-        <div className="relative flex items-center justify-center min-h-[450px] md:min-h-[500px] lg:min-h-[550px]">
+        {/* Illustration Section - Hidden on smaller devices */}
+        <div className="hidden lg:flex relative items-center justify-center min-h-[450px] md:min-h-[500px] lg:min-h-[550px]">
           <div className="relative w-full h-full">
             <CardSwap
               width={320}
