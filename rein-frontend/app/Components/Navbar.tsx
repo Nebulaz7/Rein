@@ -40,9 +40,9 @@ export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const links = [
-    { href: "/#market", label: "Features", icon: ShoppingBag },
+    { href: "/#about", label: "Features", icon: ShoppingBag },
     { href: "/#how-it-works", label: "How It Works", icon: PlusCircle },
-    { href: "/#faqs", label: "FAQs", icon: LayoutDashboard },
+    { href: "/#explore", label: "Explore", icon: LayoutDashboard },
   ];
 
   return (

@@ -117,6 +117,10 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
+* {
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+}
 /* ============================================
    Neo-Brutalist Accent Utilities
    ============================================ */

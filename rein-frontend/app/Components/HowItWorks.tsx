@@ -497,7 +497,7 @@ const HowItWorks = () => {
 
           {/* Steps */}
           <motion.div
-            className="relative space-y-12 md:space-y-24 xl:space-y-32 2xl:space-y-40"
+            className="relative space-y-12 md:space-y-24 lg:space-y-28 xl:space-y-32 2xl:space-y-40"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-50px" }}
@@ -506,7 +506,7 @@ const HowItWorks = () => {
             {steps.map((step, index) => (
               <motion.div
                 key={step.id}
-                className={`relative flex flex-col md:flex-row items-start gap-6 md:gap-12 xl:gap-16 2xl:gap-20 ${
+                className={`relative flex flex-col md:flex-row items-start gap-6 md:gap-12 lg:gap-14 xl:gap-16 2xl:gap-20 ${
                   index % 2 === 0
                     ? "md:flex-row lg:flex-row"
                     : "md:flex-row-reverse lg:flex-row-reverse"
@@ -515,10 +515,10 @@ const HowItWorks = () => {
               >
                 {/* Step number indicator */}
                 <div
-                  className={`absolute left-0 md:left-1/2 md:-translate-x-1/2 z-10 flex items-center justify-center w-14 h-14 xl:w-16 xl:h-16 2xl:w-20 2xl:h-20 rounded-full ${step.bgColor} border-4 xl:border-[5px] 2xl:border-6 border-background shadow-lg`}
+                  className={`absolute left-0 md:left-1/2 md:-translate-x-1/2 z-10 flex items-center justify-center w-14 h-14 lg:w-16 lg:h-16 xl:w-16 xl:h-16 2xl:w-20 2xl:h-20 rounded-full ${step.bgColor} border-4 xl:border-[5px] 2xl:border-6 border-background shadow-lg`}
                 >
                   <step.icon
-                    className={`w-6 h-6 xl:w-7 xl:h-7 2xl:w-9 2xl:h-9 ${step.color}`}
+                    className={`w-6 h-6 lg:w-7 lg:h-7 xl:w-7 xl:h-7 2xl:w-9 2xl:h-9 ${step.color}`}
                   />
                 </div>
 
@@ -526,12 +526,12 @@ const HowItWorks = () => {
                 <div
                   className={`flex-1 ml-20 md:ml-0 ${
                     index % 2 === 0
-                      ? "md:pr-20 xl:pr-24 2xl:pr-28 md:text-right"
-                      : "md:pl-20 xl:pl-24 2xl:pl-28 md:text-left"
+                      ? "md:pr-20 lg:pr-22 xl:pr-24 2xl:pr-28 md:text-right"
+                      : "md:pl-20 lg:pl-22 xl:pl-24 2xl:pl-28 md:text-left"
                   }`}
                 >
                   <div
-                    className={`inline-flex items-center gap-2 xl:gap-3 mb-2 xl:mb-3 ${
+                    className={`inline-flex items-center gap-2 lg:gap-3 xl:gap-3 mb-2 xl:mb-3 ${
                       index % 2 === 0 ? "md:flex-row-reverse" : ""
                     }`}
                   >
@@ -541,7 +541,7 @@ const HowItWorks = () => {
                       Step {step.id}
                     </span>
                     <ArrowRight
-                      className={`w-4 h-4 xl:w-5 xl:h-5 2xl:w-6 2xl:h-6 ${step.color} ${
+                      className={`w-4 h-4 lg:w-5 lg:h-5 xl:w-5 xl:h-5 2xl:w-6 2xl:h-6 ${step.color} ${
                         index % 2 === 0 ? "md:rotate-180" : ""
                       }`}
                     />
