@@ -53,12 +53,19 @@ const makeSlot = (
   distX: number,
   distY: number,
   total: number,
-): Slot => ({
-  x: i * distX,
-  y: -i * distY,
-  z: -i * distX * 1.5,
-  zIndex: total - i,
-});
+): Slot => {
+  // Scale down spacing when there are more cards to prevent overflow
+  const scaleFactor = total > 3 ? 3 / total : 1;
+  const adjustedDistX = distX * scaleFactor;
+  const adjustedDistY = distY * scaleFactor;
+
+  return {
+    x: i * adjustedDistX,
+    y: -i * adjustedDistY,
+    z: -i * adjustedDistX * 1.5,
+    zIndex: total - i,
+  };
+};
 
 const placeNow = (el: HTMLElement, slot: Slot, skew: number) =>
   gsap.set(el, {
