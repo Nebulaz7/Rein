@@ -41,76 +41,139 @@ export const baseTemplate = (content: string, preheader?: string): string => {
         font-family:
           -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
           'Helvetica Neue', Arial, sans-serif;
-        background-color: #f4f4f5;
-        color: #18181b;
+        background-color: #0a0a0a;
+        color: #fafafa;
       }
 
       /* Container */
       .email-container {
         max-width: 600px;
         margin: 0 auto;
-        background-color: #ffffff;
+        background-color: #0a0a0a;
       }
 
       /* Header */
       .header {
         padding: 32px 24px;
         text-align: center;
-        background: #e2e3e4;
-        color: #52cbff;
+        background-color: #0a0a0a;
+        border-bottom: 2px solid #52cbff;
       }
 
       .logo {
-        font-size: 28px;
+        font-size: 24px;
         font-weight: 700;
-        color: #ffffff;
+        color: #52cbff;
         text-decoration: none;
         letter-spacing: -0.5px;
+        text-transform: uppercase;
       }
 
       /* Content */
       .content {
         padding: 40px 24px;
+        background-color: #0a0a0a;
       }
 
       /* Typography */
       h1 {
         margin: 0 0 24px 0;
-        font-size: 24px;
-        font-weight: 700;
-        line-height: 1.3;
-        color: #18181b;
+        font-size: 28px;
+        font-weight: 900;
+        line-height: 1.2;
+        color: #fafafa;
+        text-transform: uppercase;
+        letter-spacing: -0.5px;
       }
 
       p {
         margin: 0 0 16px 0;
         font-size: 16px;
         line-height: 1.6;
-        color: #3f3f46;
+        color: #a1a1aa;
+      }
+
+      .strong-text {
+        color: #fafafa;
+        font-weight: 600;
+      }
+
+      /* Brutal Card/Box */
+      .brutal-box {
+        background-color: #18181b;
+        border: 2px solid #52cbff;
+        border-radius: 10px;
+        box-shadow: 4px 4px 0px 0px #52cbff;
+        padding: 24px;
+        margin: 24px 0;
+      }
+
+      .brutal-box-success {
+        background-color: #18181b;
+        border: 2px solid #10b981;
+        border-radius: 10px;
+        box-shadow: 4px 4px 0px 0px #10b981;
+        padding: 24px;
+        margin: 24px 0;
+      }
+
+      .brutal-box-warning {
+        background-color: #18181b;
+        border: 2px solid #f59e0b;
+        border-radius: 10px;
+        box-shadow: 4px 4px 0px 0px #f59e0b;
+        padding: 24px;
+        margin: 24px 0;
       }
 
       /* Buttons */
       .button {
         display: inline-block;
-        padding: 14px 28px;
+        padding: 14px 32px;
         margin: 24px 0;
         background: #52cbff;
-        color: #ffffff !important;
+        color: #0a0a0a !important;
         text-decoration: none;
-        border-radius: 8px;
+        border-radius: 9999px;
         font-weight: 600;
         font-size: 16px;
         text-align: center;
+        border: 2px solid #52cbff;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       .button:hover {
-        opacity: 0.9;
+        background: #3db8f0;
+        border-color: #3db8f0;
+      }
+
+      .button-outline {
+        display: inline-block;
+        padding: 14px 32px;
+        margin: 24px 0;
+        background: transparent;
+        color: #52cbff !important;
+        text-decoration: none;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 16px;
+        text-align: center;
+        border: 2px solid #52cbff;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .button-outline:hover {
+        background: #52cbff;
+        color: #0a0a0a !important;
       }
 
       /* Stats box */
       .stats-box {
-        background-color: #f4f4f5;
-        border-radius: 12px;
+        background-color: #18181b;
+        border: 2px solid #27272a;
+        border-radius: 10px;
         padding: 20px;
         margin: 24px 0;
       }
@@ -118,7 +181,7 @@ export const baseTemplate = (content: string, preheader?: string): string => {
       .stat-item {
         margin-bottom: 12px;
         font-size: 15px;
-        color: #52525b;
+        color: #a1a1aa;
       }
 
       .stat-item:last-child {
@@ -127,7 +190,7 @@ export const baseTemplate = (content: string, preheader?: string): string => {
 
       .stat-label {
         font-weight: 600;
-        color: #18181b;
+        color: #fafafa;
       }
 
       /* Task list */
@@ -136,24 +199,42 @@ export const baseTemplate = (content: string, preheader?: string): string => {
       }
 
       .task-item {
-        padding: 12px 16px;
-        background-color: #fafafa;
-        border-left: 3px solid #52cbff;
-        margin-bottom: 8px;
-        border-radius: 4px;
+        padding: 16px;
+        background-color: #18181b;
+        border: 2px solid #27272a;
+        margin-bottom: 12px;
+        border-radius: 8px;
+      }
+
+      .task-item.completed {
+        border-color: #10b981;
       }
 
       .task-item.overdue {
-        border-left-color: #ef4444;
-        background-color: #fef2f2;
+        border-color: #ef4444;
+      }
+
+      /* Badge */
+      .badge {
+        display: inline-block;
+        padding: 6px 14px;
+        background-color: rgba(82, 203, 255, 0.1);
+        border: 1px solid rgba(82, 203, 255, 0.3);
+        border-radius: 9999px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #52cbff;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 16px;
       }
 
       /* Footer */
       .footer {
         padding: 32px 24px;
         text-align: center;
-        background-color: #fafafa;
-        border-top: 1px solid #e4e4e7;
+        background-color: #0a0a0a;
+        border-top: 2px solid #27272a;
       }
 
       .footer-text {
@@ -165,6 +246,19 @@ export const baseTemplate = (content: string, preheader?: string): string => {
       .footer-link {
         color: #52cbff;
         text-decoration: none;
+        font-weight: 500;
+      }
+
+      .footer-link:hover {
+        text-decoration: underline;
+      }
+
+      /* Divider */
+      .divider {
+        height: 2px;
+        background-color: #27272a;
+        margin: 32px 0;
+        border: none;
       }
 
       /* Responsive */
@@ -178,12 +272,14 @@ export const baseTemplate = (content: string, preheader?: string): string => {
         }
 
         h1 {
-          font-size: 22px !important;
+          font-size: 24px !important;
         }
 
-        .button {
+        .button,
+        .button-outline {
           display: block !important;
           width: 100% !important;
+          box-sizing: border-box;
         }
       }
     </style>
@@ -202,33 +298,22 @@ export const baseTemplate = (content: string, preheader?: string): string => {
       cellpadding="0"
       border="0"
       width="100%"
+      style="background-color: #0a0a0a;"
     >
       <tr>
         <td style="padding: 40px 10px">
           <div class="email-container">
             <!-- Header -->
             <div class="header">
-              <a
-                href="${process.env.FRONTEND_URL || 'https://rein.app'}"
-                style="display: flex"
-                class="logo"
-              >
-                <div style="width: 16px; height: 16px">
-                  <!-- REIN lOGO URL -->
-                </div>
-                <span
-                  style="
-                    display: inline-block;
-                    margin-top: 12px;
-                    color: #52cbff;
-                  "
-                  >🎯 Rein</span
-                >
+              <a href="${process.env.FRONTEND_URL || 'https://rein.app'}" class="logo">
+                🎯 REIN
               </a>
             </div>
 
             <!-- Main Content -->
-            <div class="content">${content}</div>
+            <div class="content">
+              ${content}
+            </div>
 
             <!-- Footer -->
             <div class="footer">
@@ -254,8 +339,7 @@ export const baseTemplate = (content: string, preheader?: string): string => {
                   href="${process.env.FRONTEND_URL || 'https://rein.app'}/settings/email"
                   class="footer-link"
                 >
-                  update your preferences </a
-                >.
+                  update your preferences</a>.
               </p>
             </div>
           </div>
@@ -263,6 +347,5 @@ export const baseTemplate = (content: string, preheader?: string): string => {
       </tr>
     </table>
   </body>
-</html>
-`.trim();
+</html>`.trim();
 };

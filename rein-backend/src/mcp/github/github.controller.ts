@@ -10,7 +10,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { GitHubService } from './github.service';
-
+import { GitHubIssueService, CreateIssuesRequest } from './github-issue.service';
 // You'll need to implement your own auth guard
 // import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -143,6 +143,113 @@ export class GitHubController {
     return {
       success: true,
       issue,
+    };
+  }
+
+  /**
+   * Create a GitHub repository
+   * POST /github/create-repo
+   * Body: { name: string, description?: string, private?: boolean, userId: string }
+   */
+  @Post('create-repo')
+  async createRepository(
+    @Body() body: {
+      name: string;
+      description?: string;
+      private?: boolean;
+      autoInit?: boolean;
+    },
+    @Query('userId') userId: string,
+    @Request() req: any,
+  ) {
+    const actualUserId = userId || req.user?.id || 'temp-user-id';
+    
+    const repo = await this.githubService.createRepository({
+      userId: actualUserId,
+      name: body.name,
+      description: body.description,
+      private: body.private,
+      autoInit: body.autoInit,
+    });
+
+    return {
+      success: true,
+      repository: repo,
+    };
+  }
+
+  /**
+   * Create a GitHub issue for a roadmap task
+   * POST /github/create-issue
+   * Body: { repoUrl: "owner/repo", task: TaskData, userId: string }
+   */
+  @Post('create-issue')
+  async createIssueForTask(
+    @Body() body: {
+      repoUrl: string; // format: "owner/repo"
+      task: {
+        title: string;
+        description: string;
+        scheduledDate?: string;
+        stageTitle?: string;
+        resources?: Array<{ type: string; title: string; url: string }>;
+      };
+      labels?: string[];
+    },
+    @Query('userId') userId: string,
+    @Request() req: any,
+  ) {
+    const actualUserId = userId || req.user?.id || 'temp-user-id';
+    
+    // Parse owner/repo from repoUrl
+    const [owner, repo] = body.repoUrl.split('/');
+    
+    if (!owner || !repo) {
+      return {
+        success: false,
+        error: 'Invalid repository URL. Expected format: owner/repo',
+      };
+    }
+
+    // Format task as GitHub issue markdown
+    const issueBody = this.githubService.formatTaskAsIssue(body.task);
+    
+    // Default labels for learning tasks
+    const labels = body.labels || ['rein-ai', 'learning-task'];
+    
+    const issue = await this.githubService.createIssue({
+      userId: actualUserId,
+      owner,
+      repo,
+      title: body.task.title,
+      body: issueBody,
+      labels,
+    });
+
+    return {
+      success: true,
+      issue,
+      repoUrl: body.repoUrl,
+    };
+  }
+
+  /**
+   * Get user's GitHub repositories
+   * GET /github/repositories?userId=...
+   */
+  @Get('repositories')
+  async getRepositories(
+    @Query('userId') userId: string,
+    @Query('sort') sort: 'created' | 'updated' | 'pushed' | 'full_name' = 'updated',
+    @Request() req: any,
+  ) {
+    const actualUserId = userId || req.user?.id || 'temp-user-id';
+    
+    const repos = await this.githubService.getUserRepositories(actualUserId, { sort });
+
+    return {
+      success: true,
+      repositories: repos,
     };
   }
 }

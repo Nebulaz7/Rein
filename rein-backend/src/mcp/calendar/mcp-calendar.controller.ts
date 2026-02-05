@@ -134,4 +134,24 @@ export class McpCalendarController {
   ) {
     return this.service.addRoadmapToCalendar(body.userId, body.roadmap, { startDate: body.startDate });
   }
+
+  // Public endpoint – called from frontend when syncing
+  @Post('sync')
+  async sync(
+    @Body()
+    body: {
+      userId: string;
+      roadmap: ParsedResolution;
+      startDate?: string;
+    },
+  ) {
+    if (!body.userId || !body.roadmap) {
+      return { success: false, error: 'Missing userId or roadmap' };
+    }
+
+    return this.service.addRoadmapToCalendar(body.userId, body.roadmap, { 
+      startDate: body.startDate,
+      dryRun: false 
+    });
+  }
 }

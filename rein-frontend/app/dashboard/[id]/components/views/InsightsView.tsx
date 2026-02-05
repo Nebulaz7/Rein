@@ -6,7 +6,8 @@ import AICoachMessage from "../AICoachMessage";
 import OpikQualityScores from "../OpikQualityScores";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Brain, Target, History, ArrowRight } from "lucide-react";
+import { Sparkles, Brain, Target, History, ArrowRight, TrendingUp, TrendingDown, Activity } from "lucide-react";
+import type { PerformanceSummary } from "@/lib/analytics";
 
 interface QualityScore {
   label: string;
@@ -23,32 +24,8 @@ interface InsightsViewProps {
   };
   auditInsight: string;
   auditStats: { efficiency: number; stability: number };
+  analytics: PerformanceSummary | null;
 }
-
-// Mock historical insights
-const historicalInsights = [
-  {
-    id: "1",
-    date: "Jan 24, 2026",
-    insight:
-      "Morning productivity peaked between 9-11 AM. Consider scheduling deep work during this window.",
-    confidence: 89,
-  },
-  {
-    id: "2",
-    date: "Jan 23, 2026",
-    insight:
-      "GitHub commits increased by 40% after implementing the Pomodoro technique suggestion.",
-    confidence: 94,
-  },
-  {
-    id: "3",
-    date: "Jan 22, 2026",
-    insight:
-      "Calendar conflicts detected on Wednesdays. Recommendation: Block focus time.",
-    confidence: 87,
-  },
-];
 
 export default function InsightsView({
   qualityScores,
@@ -56,6 +33,7 @@ export default function InsightsView({
   coachMessage,
   auditInsight,
   auditStats,
+  analytics,
 }: InsightsViewProps) {
   return (
     <div className="space-y-6">
@@ -64,6 +42,71 @@ export default function InsightsView({
         message={coachMessage.message}
         confidence={coachMessage.confidence}
       />
+
+      {/* Empty State */}
+      {!analytics && (
+        <Card className="p-8 border-2 border-dashed border-border bg-secondary/20">
+          <div className="text-center space-y-3">
+            <Activity className="w-12 h-12 mx-auto text-muted-foreground" />
+            <h3 className="font-black text-lg">No Activity Yet</h3>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              Complete your first task to unlock personalized insights and AI-powered recommendations
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {/* Analytics Performance Summary */}
+      {analytics && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="p-4 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase font-bold">Activity Score</p>
+                <p className="text-3xl font-black mt-1">{analytics.scores.activityScore.toFixed(1)}/10</p>
+              </div>
+              <Activity className="w-8 h-8 text-primary" />
+            </div>
+            <div className="mt-3 flex items-center gap-1 text-xs">
+              <Badge className="bg-primary/10 text-primary border-primary">
+                {analytics.activityBreakdown.total} activities
+              </Badge>
+            </div>
+          </Card>
+
+          <Card className="p-4 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase font-bold">Consistency</p>
+                <p className="text-3xl font-black mt-1">{analytics.scores.consistencyScore.toFixed(1)}/10</p>
+              </div>
+              <Target className="w-8 h-8 text-green-600" />
+            </div>
+            <div className="mt-3 flex items-center gap-1 text-xs">
+              <span className="text-muted-foreground">{analytics.trends.activeDaysCount}/{analytics.period.days} active days</span>
+            </div>
+          </Card>
+
+          <Card className="p-4 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase font-bold">Trend</p>
+                <p className="text-3xl font-black mt-1">
+                  {analytics.trends.weekOverWeekChange > 0 ? '+' : ''}{analytics.trends.weekOverWeekChange}%
+                </p>
+              </div>
+              {analytics.trends.weekOverWeekChange >= 0 ? (
+                <TrendingUp className="w-8 h-8 text-green-600" />
+              ) : (
+                <TrendingDown className="w-8 h-8 text-red-600" />
+              )}
+            </div>
+            <div className="mt-3 flex items-center gap-1 text-xs">
+              <span className="text-muted-foreground">Most active: {analytics.trends.mostActiveDay}</span>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -77,58 +120,41 @@ export default function InsightsView({
             </div>
 
             <div className="space-y-4">
-              <div className="p-4 bg-primary/5 border-2 border-primary/20 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <Target className="w-5 h-5 text-primary mt-0.5" />
-                  <div>
-                    <h4 className="font-bold text-sm">
-                      Optimize Morning Routine
-                    </h4>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Based on your completion patterns, starting with GitHub
-                      tasks before 10 AM increases your daily completion rate by
-                      23%.
-                    </p>
-                    <button className="flex items-center gap-1 text-xs font-bold text-primary mt-2 hover:underline">
-                      Apply to Calendar <ArrowRight className="w-3 h-3" />
-                    </button>
+              {analytics && analytics.recommendations.length > 0 ? (
+                analytics.recommendations.map((recommendation, index) => (
+                  <div
+                    key={index}
+                    className={`p-4 rounded-lg border-2 ${
+                      index === 0
+                        ? 'bg-primary/5 border-primary/20'
+                        : index === 1
+                        ? 'bg-secondary/50 border-border'
+                        : 'bg-green-500/5 border-green-500/20'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      {index === 0 ? (
+                        <Target className="w-5 h-5 text-primary mt-0.5" />
+                      ) : index === 1 ? (
+                        <Sparkles className="w-5 h-5 text-yellow-600 mt-0.5" />
+                      ) : (
+                        <Target className="w-5 h-5 text-green-600 mt-0.5" />
+                      )}
+                      <div>
+                        <p className="text-sm text-muted-foreground">
+                          {recommendation}
+                        </p>
+                      </div>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="p-4 bg-secondary/50 border-2 border-border rounded-lg">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Complete more tasks to unlock personalized recommendations
+                  </p>
                 </div>
-              </div>
-
-              <div className="p-4 bg-secondary/50 border-2 border-border rounded-lg">
-                <div className="flex items-start gap-3">
-                  <Sparkles className="w-5 h-5 text-yellow-600 mt-0.5" />
-                  <div>
-                    <h4 className="font-bold text-sm">
-                      Break Pattern Detected
-                    </h4>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      You tend to skip Calendar events after 3 PM. Consider
-                      shorter 25-minute blocks for afternoon sessions.
-                    </p>
-                    <button className="flex items-center gap-1 text-xs font-bold text-primary mt-2 hover:underline">
-                      Adjust Schedule <ArrowRight className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-green-500/5 border-2 border-green-500/20 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <Target className="w-5 h-5 text-green-600 mt-0.5" />
-                  <div>
-                    <h4 className="font-bold text-sm">Streak Protection</h4>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      You're on a 12-day streak! To maintain momentum, complete
-                      at least one GitHub task today before 6 PM.
-                    </p>
-                    <Badge className="mt-2 bg-green-500/20 text-green-700 border-green-500">
-                      High Priority
-                    </Badge>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </Card>
 
@@ -145,27 +171,36 @@ export default function InsightsView({
             </div>
 
             <div className="space-y-3">
-              {historicalInsights.map((insight) => (
-                <div
-                  key={insight.id}
-                  className="p-3 bg-secondary/30 rounded-lg border border-border"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm">{insight.insight}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {insight.date} • {insight.confidence}% confidence
-                      </p>
+              {analytics?.historicalInsights && analytics.historicalInsights.length > 0 ? (
+                analytics.historicalInsights.map((insight, index) => (
+                  <div
+                    key={index}
+                    className="p-3 bg-secondary/30 rounded-lg border border-border"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm">{insight.insight}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {insight.date} • {insight.type}
+                        </p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] shrink-0 ml-2"
+                      >
+                        {insight.type === 'achievement' ? '🏆 Achievement' : 
+                         insight.type === 'pattern' ? '📊 Pattern' : '💡 Tip'}
+                      </Badge>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] shrink-0 ml-2"
-                    >
-                      Opik Tracked
-                    </Badge>
                   </div>
+                ))
+              ) : (
+                <div className="p-4 bg-secondary/50 border-2 border-border rounded-lg">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Complete more activities to build your insight history
+                  </p>
                 </div>
-              ))}
+              )}
             </div>
           </Card>
         </div>

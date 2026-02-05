@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,6 +16,7 @@ import {
   FileText,
   Video,
 } from "lucide-react";
+import TaskGitHubPromptModal from "@/components/TaskGitHubPromptModal";
 
 export interface Resource {
   type: "article" | "video";
@@ -32,11 +33,20 @@ export interface Task {
   completed?: boolean;
   badge?: string;
   resources?: Resource[];
+  isPractical?: boolean;
+  githubReady?: boolean;
+  githubIssueUrl?: string;
+  githubRepoUrl?: string;
+  githubIssueNumber?: number;
+  githubDeclined?: boolean;
+  stageTitle?: string;
 }
 
 interface ExecutionTimelineProps {
   tasks: Task[];
   onTaskComplete?: (taskId: string) => void;
+  userId?: string;
+  resolutionId?: string;
 }
 
 const platformConfig = {
@@ -83,9 +93,12 @@ export default function ExecutionTimeline({
     },
   ],
   onTaskComplete,
+  userId,
+  resolutionId,
 }: ExecutionTimelineProps) {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
-
+  const [githubModalTask, setGithubModalTask] = useState<Task | null>(null);
+  const [showGithubModal, setShowGithubModal] = useState(false);
   const toggleExpand = (taskId: string) => {
     setExpandedTasks((prev) => {
       const newSet = new Set(prev);
@@ -145,12 +158,48 @@ export default function ExecutionTimeline({
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <Badge
-                      variant="outline"
-                      className={`mb-2 ${config.badgeClass}`}
-                    >
-                      {task.badge || config.badge}
-                    </Badge>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <Badge
+                        variant="outline"
+                        className={`${config.badgeClass}`}
+                      >
+                        {task.badge || config.badge}
+                      </Badge>
+                      
+                      {/* GitHub Integration Badge */}
+                      {task.isPractical && task.githubReady && !task.githubDeclined && (
+                        task.githubIssueUrl ? (
+                          <a
+                            href={task.githubIssueUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex"
+                          >
+                            <Badge
+                              variant="outline"
+                              className="bg-green-500/10 border-green-500/50 text-green-700 dark:text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
+                            >
+                              <Github className="w-3 h-3 mr-1" />
+                              Issue #{task.githubIssueNumber}
+                            </Badge>
+                          </a>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="bg-primary/10 border-primary cursor-pointer hover:bg-primary/20 transition-colors"
+                            onClick={() => {
+                              if (userId && resolutionId) {
+                                setGithubModalTask(task);
+                                setShowGithubModal(true);
+                              }
+                            }}
+                          >
+                            <Github className="w-3 h-3 mr-1" />
+                            Create Issue
+                          </Badge>
+                        )
+                      )}
+                    </div>
                     <h4
                       className={`font-bold text-lg ${
                         task.completed ? "line-through" : ""
@@ -279,6 +328,44 @@ export default function ExecutionTimeline({
           </Card>
         )}
       </div>
+
+      {/* GitHub Issue Creation Modal */}
+      {githubModalTask && userId && resolutionId && (
+        <TaskGitHubPromptModal
+          open={showGithubModal}
+          onOpenChange={setShowGithubModal}
+          task={{
+            id: githubModalTask.id,
+            title: githubModalTask.title,
+            description: githubModalTask.description || "",
+            scheduledDate: githubModalTask.time,
+            stageTitle: githubModalTask.stageTitle,
+            resources: githubModalTask.resources,
+          }}
+          userId={userId}
+          resolutionId={resolutionId}
+          onSuccess={(issueUrl, repoUrl) => {
+            // Refresh task data or show success message
+            console.log("GitHub issue created:", issueUrl);
+          }}
+          onDecline={async () => {
+            // Update task to mark as declined
+            if (githubModalTask && userId && resolutionId) {
+              try {
+                await fetch(`${process.env.NEXT_PUBLIC_API_URL}/resolution/${resolutionId}/tasks/${githubModalTask.id}/github/decline`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ userId }),
+                });
+              } catch (error) {
+                console.error('Failed to mark task as declined:', error);
+              }
+            }
+          }}
+        />
+      )}
     </section>
   );
 }

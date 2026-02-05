@@ -15,6 +15,7 @@ import { AnchorModule } from './anchor/anchor.module';
 import { SlackMessagingService } from './mcp/slack/slack.messaging';
 import { GitHubModule } from './mcp/github/github.module';
 import { EmailModule } from './email/email.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { EmailModule } from './email/email.module';
     CommonModule,
     GitHubModule,
     EmailModule,
+    AnalyticsModule,
     ResolutionModule,
     UserModule,
     McpCalendarModule,

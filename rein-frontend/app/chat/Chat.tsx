@@ -159,6 +159,7 @@ export default function ChatPage() {
   );
   const [savedResolutions, setSavedResolutions] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [currentResolution, setCurrentResolution] = useState<any>(null);
 
   const MIN_SIDEBAR_WIDTH = 240;
   const MAX_SIDEBAR_WIDTH = 700;
@@ -642,6 +643,14 @@ export default function ChatPage() {
       return;
     }
 
+    // Check if resolution has been generated
+    if (!currentResolution) {
+      setIntegrationError(
+        "Please generate the plan first by clicking 'Implement This Plan'",
+      );
+      return;
+    }
+
     setIntegrationError(null);
     setIsProcessing(true);
 
@@ -651,44 +660,52 @@ export default function ChatPage() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        throw new Error("You must be logged in to save resolutions");
+        throw new Error("You must be logged in to sync resolutions");
       }
 
-      // Use the session summary if available, otherwise fall back to original prompt
-      const prompt = session.summary || session.originalPrompt;
+      // Sync to selected integrations
+      const syncPromises = [];
 
-      const res = await fetch("http://localhost:5000/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: prompt,
-          mode: "plan",
-        }),
-      });
-
-      if (!res.ok) throw new Error("Failed to generate resolution");
-
-      const result = await res.json();
-
-      // Check for error in response
-      if (result.error) {
-        throw new Error(result.error);
+      // Calendar sync
+      if (selectedIntegrations.includes('google-calendar')) {
+        console.log('Syncing to calendar with roadmap:', currentResolution.roadmap);
+        const calendarSync = fetch(`${process.env.NEXT_PUBLIC_API_URL}/mcp/calendar/sync`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            roadmap: currentResolution.roadmap,
+          }),
+        }).then(async (res) => {
+          const data = await res.json();
+          console.log('Calendar sync response:', data);
+          if (!data.success) {
+            throw new Error(data.error || 'Calendar sync failed');
+          }
+          return data;
+        });
+        syncPromises.push(calendarSync);
       }
 
-      // Save the resolution to database with generated title and description
-      const savedResolution = await resolutionAPI.create({
-        userId: user.id,
-        title: result.title, // Use AI-generated clean title
-        goal: result.description || prompt, // Use AI-generated description or fallback to prompt
-        roadmap: result.resolution,
-      });
+      // GitHub sync (if needed in the future)
+      if (selectedIntegrations.includes('github')) {
+        // TODO: Implement GitHub sync
+        console.log('GitHub sync selected - implementation pending');
+      }
 
-      // Refresh saved resolutions to include the new one
-      const updatedResolutions = await resolutionAPI.getAllByUser(user.id);
-      setSavedResolutions(updatedResolutions);
+      // Slack sync (if needed in the future)
+      if (selectedIntegrations.includes('slack')) {
+        // TODO: Implement Slack sync
+        console.log('Slack sync selected - implementation pending');
+      }
 
-      // Redirect to dynamic dashboard with the saved resolution ID
-      router.push(`/dashboard/${savedResolution.id}`);
+      // Wait for all syncs to complete
+      if (syncPromises.length > 0) {
+        await Promise.all(syncPromises);
+      }
+
+      // Redirect to dashboard
+      router.push(`/dashboard/${currentResolution.id}`);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -730,13 +747,20 @@ export default function ChatPage() {
         throw new Error(result.error);
       }
 
+      // Extract suggestedPlatforms from the response
+      const suggestedPlatforms = result.githubSyncMetadata?.suggestedPlatforms || ['calendar'];
+
       // Save the resolution to database with generated title and description
       const savedResolution = await resolutionAPI.create({
         userId: user.id,
         title: result.title, // Use AI-generated clean title
         goal: result.description || prompt, // Use AI-generated description or fallback to prompt
         roadmap: result.resolution,
+        suggestedPlatforms, // Pass the suggested platforms from preprocessor
       });
+
+      // Store the saved resolution in state for syncing
+      setCurrentResolution(savedResolution);
 
       // Refresh saved resolutions to include the new one
       const updatedResolutions = await resolutionAPI.getAllByUser(user.id);

@@ -36,96 +36,164 @@
         font-family:
           -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
           'Helvetica Neue', Arial, sans-serif;
-        background-color: #f4f4f5;
-        color: #18181b;
+        background-color: #0a0a0a;
+        color: #fafafa;
       }
 
       /* Container */
       .email-container {
         max-width: 600px;
         margin: 0 auto;
-        background-color: #ffffff;
+        background-color: #0a0a0a;
       }
 
       /* Header */
       .header {
         padding: 32px 24px;
         text-align: center;
-        background: #e2e3e4;
-        color: #52cbff;
+        background-color: #0a0a0a;
+        border-bottom: 2px solid #52cbff;
       }
 
       .logo {
-        font-size: 28px;
+        font-size: 24px;
         font-weight: 700;
-        color: #ffffff;
+        color: #52cbff;
         text-decoration: none;
         letter-spacing: -0.5px;
+        text-transform: uppercase;
       }
 
       /* Content */
       .content {
         padding: 40px 24px;
+        background-color: #0a0a0a;
       }
 
       /* Typography */
       h1 {
         margin: 0 0 24px 0;
-        font-size: 24px;
-        font-weight: 700;
-        line-height: 1.3;
-        color: #18181b;
+        font-size: 28px;
+        font-weight: 900;
+        line-height: 1.2;
+        color: #fafafa;
+        text-transform: uppercase;
+        letter-spacing: -0.5px;
       }
 
       p {
         margin: 0 0 16px 0;
         font-size: 16px;
         line-height: 1.6;
-        color: #3f3f46;
+        color: #a1a1aa;
+      }
+
+      .strong-text {
+        color: #fafafa;
+        font-weight: 600;
+      }
+
+      /* Brutal Card/Box */
+      .brutal-box {
+        background-color: #18181b;
+        border: 2px solid #52cbff;
+        border-radius: 10px;
+        box-shadow: 4px 4px 0px 0px #52cbff;
+        padding: 24px;
+        margin: 24px 0;
+      }
+
+      .brutal-box-success {
+        background-color: #18181b;
+        border: 2px solid #10b981;
+        border-radius: 10px;
+        box-shadow: 4px 4px 0px 0px #10b981;
+        padding: 24px;
+        margin: 24px 0;
+      }
+
+      .brutal-box-warning {
+        background-color: #18181b;
+        border: 2px solid #f59e0b;
+        border-radius: 10px;
+        box-shadow: 4px 4px 0px 0px #f59e0b;
+        padding: 24px;
+        margin: 24px 0;
       }
 
       /* Buttons */
       .button {
         display: inline-block;
-        padding: 14px 28px;
+        padding: 14px 32px;
         margin: 24px 0;
         background: #52cbff;
-        color: #ffffff !important;
+        color: #0a0a0a !important;
         text-decoration: none;
-        border-radius: 8px;
+        border-radius: 9999px;
         font-weight: 600;
         font-size: 16px;
         text-align: center;
+        border: 2px solid #52cbff;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       .button:hover {
-        opacity: 0.9;
+        background: #3db8f0;
+        border-color: #3db8f0;
+      }
+
+      .button-outline {
+        display: inline-block;
+        padding: 14px 32px;
+        margin: 24px 0;
+        background: transparent;
+        color: #52cbff !important;
+        text-decoration: none;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 16px;
+        text-align: center;
+        border: 2px solid #52cbff;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .button-outline:hover {
+        background: #52cbff;
+        color: #0a0a0a !important;
       }
 
       /* Stats box */
-      .stats-box {
-        background-color: #f4f4f5;
-        border-radius: 12px;
-        padding: 20px;
+      .stats-container {
+        display: flex;
+        gap: 16px;
         margin: 24px 0;
-        border: 2px solid #52cbff;
-        box-shadow: 4px 4px 0px 0px #52cbff;
-        border-radius: 0.625rem;
       }
 
       .stat-item {
-        margin-bottom: 12px;
-        font-size: 15px;
-        color: #52525b;
+        flex: 1;
+        background-color: #18181b;
+        border: 2px solid #27272a;
+        border-radius: 10px;
+        padding: 16px;
+        text-align: center;
       }
 
-      .stat-item:last-child {
-        margin-bottom: 0;
+      .stat-value {
+        font-size: 32px;
+        font-weight: 900;
+        color: #52cbff;
+        margin-bottom: 4px;
+        display: block;
       }
 
       .stat-label {
+        font-size: 12px;
         font-weight: 600;
-        color: #18181b;
+        color: #71717a;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       /* Task list */
@@ -134,24 +202,86 @@
       }
 
       .task-item {
-        padding: 12px 16px;
-        background-color: #fafafa;
-        border-left: 3px solid #52cbff;
-        margin-bottom: 8px;
-        border-radius: 4px;
+        padding: 16px;
+        background-color: #18181b;
+        border: 2px solid #27272a;
+        margin-bottom: 12px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .task-item.completed {
+        border-color: #10b981;
+        background-color: #18181b;
       }
 
       .task-item.overdue {
-        border-left-color: #ef4444;
-        background-color: #fef2f2;
+        border-color: #ef4444;
+        background-color: #18181b;
+      }
+
+      .task-checkbox {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #52cbff;
+        border-radius: 4px;
+        background-color: transparent;
+        flex-shrink: 0;
+      }
+
+      .task-checkbox.checked {
+        background-color: #10b981;
+        border-color: #10b981;
+      }
+
+      .task-text {
+        flex: 1;
+        font-size: 15px;
+        color: #fafafa;
+        font-weight: 500;
+      }
+
+      .task-platform {
+        font-size: 11px;
+        color: #71717a;
+        background-color: #27272a;
+        padding: 4px 10px;
+        border-radius: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+      }
+
+      /* Badge */
+      .badge {
+        display: inline-block;
+        padding: 6px 14px;
+        background-color: rgba(82, 203, 255, 0.1);
+        border: 1px solid rgba(82, 203, 255, 0.3);
+        border-radius: 9999px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #52cbff;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 16px;
+      }
+
+      /* Streak indicator */
+      .streak-fire {
+        font-size: 48px;
+        text-align: center;
+        margin: 20px 0;
       }
 
       /* Footer */
       .footer {
         padding: 32px 24px;
         text-align: center;
-        background-color: #fafafa;
-        border-top: 1px solid #e4e4e7;
+        background-color: #0a0a0a;
+        border-top: 2px solid #27272a;
       }
 
       .footer-text {
@@ -163,6 +293,19 @@
       .footer-link {
         color: #52cbff;
         text-decoration: none;
+        font-weight: 500;
+      }
+
+      .footer-link:hover {
+        text-decoration: underline;
+      }
+
+      /* Divider */
+      .divider {
+        height: 2px;
+        background-color: #27272a;
+        margin: 32px 0;
+        border: none;
       }
 
       /* Responsive */
@@ -176,12 +319,22 @@
         }
 
         h1 {
-          font-size: 22px !important;
+          font-size: 24px !important;
         }
 
-        .button {
+        .button,
+        .button-outline {
           display: block !important;
           width: 100% !important;
+          box-sizing: border-box;
+        }
+
+        .stats-container {
+          flex-direction: column;
+        }
+
+        .stat-item {
+          margin-bottom: 12px;
         }
       }
     </style>
@@ -200,33 +353,113 @@
       cellpadding="0"
       border="0"
       width="100%"
+      style="background-color: #0a0a0a;"
     >
       <tr>
         <td style="padding: 40px 10px">
           <div class="email-container">
             <!-- Header -->
             <div class="header">
-              <a
-                href="${process.env.FRONTEND_URL || 'https://rein.app'}"
-                style="display: flex"
-                class="logo"
-              >
-                <div style="width: 16px; height: 16px">
-                  <!-- REIN lOGO URL -->
-                </div>
-                <span
-                  style="
-                    display: inline-block;
-                    margin-top: 12px;
-                    color: #52cbff;
-                  "
-                  >🎯 Rein</span
-                >
+              <a href="${process.env.FRONTEND_URL || 'https://rein.app'}" class="logo">
+                🎯 REIN
               </a>
             </div>
 
             <!-- Main Content -->
-            <div class="content"></div>
+            <div class="content">
+              <!-- Example: Weekly Progress Report -->
+              
+              <span class="badge">📊 Weekly Report</span>
+              
+              <h1>Your Week in Review</h1>
+              
+              <p>
+                Hey there! 👋 Here's how you crushed your goals this week.
+              </p>
+
+              <!-- Stats Section -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="padding: 8px;" width="33%">
+                    <div class="stat-item">
+                      <span class="stat-value">14🔥</span>
+                      <span class="stat-label">Current Streak</span>
+                    </div>
+                  </td>
+                  <td style="padding: 8px;" width="33%">
+                    <div class="stat-item">
+                      <span class="stat-value">23</span>
+                      <span class="stat-label">Tasks Done</span>
+                    </div>
+                  </td>
+                  <td style="padding: 8px;" width="33%">
+                    <div class="stat-item">
+                      <span class="stat-value">87%</span>
+                      <span class="stat-label">On Track</span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Brutal Box - Success -->
+              <div class="brutal-box-success">
+                <p style="margin: 0; font-size: 18px; font-weight: 700; color: #10b981; margin-bottom: 12px;">
+                  🎉 You're on fire!
+                </p>
+                <p style="margin: 0; color: #a1a1aa;">
+                  You completed <span class="strong-text">23 tasks</span> this week across GitHub, Calendar, and Jira. That's <span class="strong-text">+35%</span> from last week!
+                </p>
+              </div>
+
+              <!-- Task List -->
+              <h2 style="font-size: 20px; font-weight: 700; color: #fafafa; margin: 32px 0 16px 0; text-transform: uppercase;">
+                This Week's Highlights
+              </h2>
+
+              <div class="task-list">
+                <div class="task-item completed">
+                  <div class="task-checkbox checked"></div>
+                  <span class="task-text">Complete React authentication module</span>
+                  <span class="task-platform">GitHub</span>
+                </div>
+                <div class="task-item completed">
+                  <div class="task-checkbox checked"></div>
+                  <span class="task-text">Morning workout (6:00 AM)</span>
+                  <span class="task-platform">Calendar</span>
+                </div>
+                <div class="task-item">
+                  <div class="task-checkbox"></div>
+                  <span class="task-text">Sprint planning review</span>
+                  <span class="task-platform">Jira</span>
+                </div>
+              </div>
+
+              <!-- CTA Button -->
+              <div style="text-align: center;">
+                <a href="${process.env.FRONTEND_URL || 'https://rein.app'}/dashboard" class="button">
+                  View Full Progress
+                </a>
+              </div>
+
+              <hr class="divider" />
+
+              <!-- Brutal Box - Check-in reminder -->
+              <div class="brutal-box">
+                <p style="margin: 0; font-size: 18px; font-weight: 700; color: #52cbff; margin-bottom: 12px;">
+                  💬 Time for your check-in
+                </p>
+                <p style="margin: 0 0 16px 0; color: #a1a1aa;">
+                  How did this week feel? Let's adjust your plan to keep the momentum going.
+                </p>
+                <a href="${process.env.FRONTEND_URL || 'https://rein.app'}/check-in" class="button-outline">
+                  Submit Check-in
+                </a>
+              </div>
+
+              <p style="color: #71717a; font-size: 14px; margin-top: 32px;">
+                Keep pushing forward. Your consistency is building something great. 💪
+              </p>
+            </div>
 
             <!-- Footer -->
             <div class="footer">
@@ -252,8 +485,7 @@
                   href="${process.env.FRONTEND_URL || 'https://rein.app'}/settings/email"
                   class="footer-link"
                 >
-                  update your preferences </a
-                >.
+                  update your preferences</a>.
               </p>
             </div>
           </div>

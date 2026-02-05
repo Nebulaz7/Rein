@@ -13,6 +13,7 @@ model User {
   email     String?   @unique
   name      String?
   sessions  ClarificationSession[]
+  performanceSnapshots UserPerformanceSnapshot[]
   resolutions  Resolution[]    
   nodeProgress NodeProgress[]  
   createdAt DateTime  @default(now())
@@ -49,12 +50,17 @@ model Resolution {
   endDate     DateTime? 
   isPublic    Boolean   @default(false)
   status      String    @default("pending")
+  suggestedPlatforms Json? // Stores array of suggested platforms from preprocessor
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   nodeProgress NodeProgress[]
   streak       Streak?
+
+  githubSynced   Boolean   @default(false)
+  githubRepoUrl  String?
+  githubSyncedAt DateTime?
 
   @@index([userId])
   @@map("resolutions")
@@ -144,6 +150,9 @@ model NodeProgress {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  githubIssueNumber Int?
+  githubIssueUrl    String?
+
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   resolution Resolution @relation(fields: [resolutionId], references: [id], onDelete: Cascade)
 
@@ -222,6 +231,19 @@ model GitHubCommit {
   @@map("github_commits")
 }
 
+model GitHubConnection {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  accessToken  String
+  refreshToken String?
+  username     String
+  avatarUrl    String?
+  connectedAt  DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("github_connections")
+}
+
 model EmailLog {
   id            String   @id @default(uuid())
   userId        String
@@ -259,4 +281,30 @@ model EmailPreferences {
   updatedAt         DateTime @updatedAt
   
   @@map("email_preferences")
+}
+
+model UserPerformanceSnapshot {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  date      DateTime @db.Date
+  
+  // Activity counts
+  githubCommits    Int @default(0) @map("github_commits")
+  slackMessages    Int @default(0) @map("slack_messages")
+  calendarEvents   Int @default(0) @map("calendar_events")
+  
+  // Calculated scores (0-10 scale)
+  activityScore     Decimal @db.Decimal(3, 1) @map("activity_score")
+  consistencyScore  Decimal @db.Decimal(3, 1) @map("consistency_score")
+  
+  // Metadata
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("user_performance_snapshots")
 }
