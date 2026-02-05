@@ -16,6 +16,7 @@ import { resolutionAPI, type ResolutionStats, type ResolutionTask } from "@/lib/
 import { supabase } from "@/lib/supabase";
 import { formatScheduledDate } from "@/lib/utils";
 import { analyticsAPI, type PerformanceSummary } from "@/lib/analytics";
+import { integrationsAPI, type IntegrationStatus } from "@/lib/integrations";
 
 /**
  * Check if a date string (YYYY-MM-DD) is today
@@ -63,32 +64,10 @@ export default function Dashboard({ id }: DashboardProps) {
   const [tasks, setTasks] = useState<ResolutionTask[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<ResolutionTask[]>([]);
   const [analytics, setAnalytics] = useState<PerformanceSummary | null>(null);
+  const [integrations, setIntegrations] = useState<IntegrationStatus[]>([]);
 
   // Legacy state for views not yet implemented
   const [isSyncing, setIsSyncing] = useState(false);
-
-  // Integrations status
-  const integrations = [
-    {
-      id: "1",
-      name: "GitHub",
-      platform: "github" as const,
-      status: "connected" as const,
-    },
-    {
-      id: "2",
-      name: "Google Calendar",
-      platform: "calendar" as const,
-      status: "synced" as const,
-      lastSync: "2m ago",
-    },
-    {
-      id: "3",
-      name: "Slack",
-      platform: "slack" as const,
-      status: "pending" as const,
-    },
-  ];
 
   // Fetch user and resolution data
   useEffect(() => {
@@ -121,6 +100,12 @@ export default function Dashboard({ id }: DashboardProps) {
           const analyticsData = await analyticsAPI.getPerformanceSummary(id, 7);
           if (analyticsData.success && analyticsData.data) {
             setAnalytics(analyticsData.data);
+          }
+
+          // Fetch integrations status
+          const integrationsData = await integrationsAPI.getStatus(user.id);
+          if (integrationsData.success && integrationsData.integrations) {
+            setIntegrations(integrationsData.integrations);
           }
         } else {
           // If no user, try without userId (public resolution)
@@ -187,10 +172,30 @@ export default function Dashboard({ id }: DashboardProps) {
     }
   }, [id, userId, tasks]);
 
-  const handleSyncPlatforms = useCallback(() => {
+  const handleSyncPlatforms = useCallback(async (platform?: string) => {
+    if (!userId) return;
+
     setIsSyncing(true);
-    setTimeout(() => setIsSyncing(false), 2000);
-  }, []);
+    try {
+      if (platform === 'calendar') {
+        const result = await integrationsAPI.syncCalendar(userId, id);
+        if (result.success) {
+          alert(result.message || 'Calendar synced successfully!');
+          // Refresh integrations status
+          const integrationsData = await integrationsAPI.getStatus(userId);
+          if (integrationsData.success && integrationsData.integrations) {
+            setIntegrations(integrationsData.integrations);
+          }
+        } else {
+          alert(`Failed to sync calendar: ${result.error}`);
+        }
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [userId, id]);
 
   const handleLogCheckIn = useCallback(() => {
     console.log("Opening check-in modal...");
