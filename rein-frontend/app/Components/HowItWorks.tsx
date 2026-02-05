@@ -61,7 +61,7 @@ const HowItWorks = () => {
             <div className="flex gap-2 items-start justify-end">
               <div className="bg-primary/20 rounded-lg rounded-tr-none px-3 py-2 border border-primary/30">
                 <p className="text-xs text-foreground">
-                  I want to learn Spanish this year
+                  I want to build an AI recipe generator web app
                 </p>
               </div>
             </div>
@@ -95,7 +95,7 @@ const HowItWorks = () => {
               <div className="flex items-center gap-2 mb-2">
                 <Target className="w-4 h-4 text-blue-400" />
                 <span className="text-sm font-semibold text-foreground">
-                  Learn Spanish
+                  AI Recipe Generator
                 </span>
               </div>
               <div className="space-y-2">
@@ -104,19 +104,19 @@ const HowItWorks = () => {
                     <div className="w-2 h-2 bg-blue-400 rounded-sm"></div>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    Complete 30 Duolingo lessons
+                    Set up Next.js project & API routes
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded border border-border"></div>
                   <span className="text-xs text-muted-foreground">
-                    Practice 15 min daily
+                    Integrate OpenAI for recipe generation
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded border border-border"></div>
                   <span className="text-xs text-muted-foreground">
-                    Have first conversation by March
+                    Deploy MVP by end of February
                   </span>
                 </div>
               </div>
@@ -126,7 +126,7 @@ const HowItWorks = () => {
                 Q1 2026
               </span>
               <span className="text-[10px] px-2 py-1 rounded-full bg-muted text-muted-foreground">
-                Language
+                Web App
               </span>
             </div>
           </div>
@@ -159,7 +159,7 @@ const HowItWorks = () => {
                   Week 1-2
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  Basics & Fundamentals
+                  Project Setup & UI Design
                 </span>
               </div>
               <div className="flex items-center gap-2 p-2 rounded bg-muted/50">
@@ -167,7 +167,7 @@ const HowItWorks = () => {
                   Week 3-4
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  Vocabulary Building
+                  AI Integration & API Layer
                 </span>
               </div>
               <div className="flex items-center gap-2 p-2 rounded bg-muted/50">
@@ -175,7 +175,7 @@ const HowItWorks = () => {
                   Week 5-8
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  Conversation Practice
+                  Testing & Deployment
                 </span>
               </div>
             </div>
@@ -263,7 +263,7 @@ const HowItWorks = () => {
               <Calendar className="w-4 h-4 text-blue-400" />
               <div className="flex-1">
                 <p className="text-xs font-medium text-foreground">
-                  Spanish Practice
+                  Coding Session
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   Added to Google Calendar
@@ -279,7 +279,7 @@ const HowItWorks = () => {
               </svg>
               <div className="flex-1">
                 <p className="text-xs font-medium text-foreground">
-                  Learning commit
+                  feat: add recipe API
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   Pushed to GitHub
@@ -293,7 +293,7 @@ const HowItWorks = () => {
               <RefreshCw className="w-4 h-4 text-orange-400 animate-spin" />
               <div className="flex-1">
                 <p className="text-xs font-medium text-foreground">
-                  Daily reminder
+                  Sprint standup
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   Syncing to Slack...
@@ -412,7 +412,7 @@ const HowItWorks = () => {
                     Recommendation
                   </p>
                   <p className="text-[10px] text-muted-foreground">
-                    Schedule Spanish practice at 9:30 AM for best results
+                    Schedule coding sessions at 9:30 AM for best results
                   </p>
                 </div>
               </div>
