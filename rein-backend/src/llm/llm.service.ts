@@ -26,11 +26,17 @@ export class LlmService implements OnModuleInit {
     }
   }
 
-  async generateContent(systemPrompt: string, userPrompt: string, traceName: string): Promise<any> {
+  async generateContent(
+    systemPrompt: string,
+    userPrompt: string,
+    traceName: string,
+    promptMetadata?: Record<string, any>,
+  ): Promise<any> {
     const trace = this.opik.trace({ 
       name: traceName,
       metadata: {
         timestamp: new Date().toISOString(),
+        ...promptMetadata, // Include prompt versioning metadata
       },
     });
 

@@ -1,17 +1,44 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { LlmService } from '../llm/llm.service';
-import * as fs from 'fs';
+import { OpikPromptRegistryService } from '../ml/opik/opik-prompt-registry.service';
 
 @Injectable()
 export class ResolutionService {
   private readonly logger = new Logger(ResolutionService.name);
 
-  constructor(private llmService: LlmService) {}
+  constructor(
+    private llmService: LlmService,
+    private promptRegistry: OpikPromptRegistryService,
+  ) {}
 
-  async analyzeResolution(rawText: string, context?: string): Promise<any> {
-    const systemPrompt = fs.readFileSync('prompts/resolution_analyzer_v1_2026-01-22.txt', 'utf-8');
+  async analyzeResolution(rawText: string, context?: string, promptVersion?: string): Promise<any> {
+    // Get versioned prompt from registry
+    const promptId = 'resolution_analyzer';
+    const promptData = promptVersion
+      ? this.promptRegistry.getPromptVersionWithMetadata(promptId, promptVersion)
+      : this.promptRegistry.getPromptWithMetadata(promptId);
+
+    const systemPrompt = promptData.content;
     const userPrompt = `${rawText}\nContext: ${context || 'None'}`;
-    return this.llmService.generateContent(systemPrompt, userPrompt, 'Resolution Analyzer');
+
+    // Log prompt execution with metadata for tracking
+    this.promptRegistry.logPromptExecution(
+      promptId,
+      promptData.metadata.promptVersion || 'unknown',
+      { rawText, context },
+      null, // Will be logged after LLM execution
+      {
+        service: 'resolution-analyzer',
+        timestamp: new Date().toISOString(),
+      },
+    );
+
+    return this.llmService.generateContent(
+      systemPrompt,
+      userPrompt,
+      'Resolution Analyzer',
+      promptData.metadata, // Pass metadata for Opik tracing
+    );
   }
 
   /**
