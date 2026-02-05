@@ -15,6 +15,8 @@ import {
 import { resolutionAPI, type ResolutionStats, type ResolutionTask } from "@/lib/resolutions";
 import { supabase } from "@/lib/supabase";
 import { formatScheduledDate } from "@/lib/utils";
+import { analyticsAPI, type PerformanceSummary } from "@/lib/analytics";
+import { integrationsAPI, type IntegrationStatus } from "@/lib/integrations";
 
 /**
  * Check if a date string (YYYY-MM-DD) is today
@@ -61,57 +63,11 @@ export default function Dashboard({ id }: DashboardProps) {
   const [stats, setStats] = useState<ResolutionStats | null>(null);
   const [tasks, setTasks] = useState<ResolutionTask[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<ResolutionTask[]>([]);
+  const [analytics, setAnalytics] = useState<PerformanceSummary | null>(null);
+  const [integrations, setIntegrations] = useState<IntegrationStatus[]>([]);
 
   // Legacy state for views not yet implemented
   const [isSyncing, setIsSyncing] = useState(false);
-
-  // Quality scores for Opik
-  const qualityScores = [
-    { label: "Goal Clarity", score: 8.9 },
-    { label: "Task Actionability", score: 9.2 },
-    { label: "Personalization", score: 7.8 },
-  ];
-
-  // Weekly completion data
-  const weeklyData = [
-    { day: "Mon", completed: 5, total: 6 },
-    { day: "Tue", completed: 4, total: 5 },
-    { day: "Wed", completed: 6, total: 6 },
-    { day: "Thu", completed: 3, total: 5 },
-    { day: "Fri", completed: 5, total: 7 },
-    { day: "Sat", completed: 4, total: 4 },
-    { day: "Sun", completed: 2, total: 3 },
-  ];
-
-  // Platform distribution data
-  const platformData = [
-    { platform: "github" as const, taskCount: 12 },
-    { platform: "calendar" as const, taskCount: 8 },
-    { platform: "slack" as const, taskCount: 5 },
-  ];
-
-  // Integrations status
-  const integrations = [
-    {
-      id: "1",
-      name: "GitHub",
-      platform: "github" as const,
-      status: "connected" as const,
-    },
-    {
-      id: "2",
-      name: "Google Calendar",
-      platform: "calendar" as const,
-      status: "synced" as const,
-      lastSync: "2m ago",
-    },
-    {
-      id: "3",
-      name: "Slack",
-      platform: "slack" as const,
-      status: "pending" as const,
-    },
-  ];
 
   // Fetch user and resolution data
   useEffect(() => {
@@ -139,6 +95,18 @@ export default function Dashboard({ id }: DashboardProps) {
           const upcomingData = await resolutionAPI.getUpcomingTasks(id, user.id, 5);
           // Keep raw dates for filtering, don't format yet
           setUpcomingTasks(upcomingData.tasks);
+
+          // Fetch analytics data
+          const analyticsData = await analyticsAPI.getPerformanceSummary(id, 7);
+          if (analyticsData.success && analyticsData.data) {
+            setAnalytics(analyticsData.data);
+          }
+
+          // Fetch integrations status
+          const integrationsData = await integrationsAPI.getStatus(user.id);
+          if (integrationsData.success && integrationsData.integrations) {
+            setIntegrations(integrationsData.integrations);
+          }
         } else {
           // If no user, try without userId (public resolution)
           const statsData = await resolutionAPI.getStats(id);
@@ -204,10 +172,30 @@ export default function Dashboard({ id }: DashboardProps) {
     }
   }, [id, userId, tasks]);
 
-  const handleSyncPlatforms = useCallback(() => {
+  const handleSyncPlatforms = useCallback(async (platform?: string) => {
+    if (!userId) return;
+
     setIsSyncing(true);
-    setTimeout(() => setIsSyncing(false), 2000);
-  }, []);
+    try {
+      if (platform === 'calendar') {
+        const result = await integrationsAPI.syncCalendar(userId, id);
+        if (result.success) {
+          alert(result.message || 'Calendar synced successfully!');
+          // Refresh integrations status
+          const integrationsData = await integrationsAPI.getStatus(userId);
+          if (integrationsData.success && integrationsData.integrations) {
+            setIntegrations(integrationsData.integrations);
+          }
+        } else {
+          alert(`Failed to sync calendar: ${result.error}`);
+        }
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [userId, id]);
 
   const handleLogCheckIn = useCallback(() => {
     console.log("Opening check-in modal...");
@@ -216,6 +204,25 @@ export default function Dashboard({ id }: DashboardProps) {
   const handleViewInsights = useCallback(() => {
     setCurrentView("insights");
   }, []);
+
+  // Derived data from analytics
+  const qualityScores = analytics ? [
+    { label: "Goal Clarity", score: analytics.qualityMetrics.goalClarity },
+    { label: "Task Actionability", score: analytics.qualityMetrics.taskActionability },
+    { label: "Personalization", score: analytics.qualityMetrics.personalization },
+  ] : [
+    { label: "Goal Clarity", score: 0 },
+    { label: "Task Actionability", score: 0 },
+    { label: "Personalization", score: 0 },
+  ];
+
+  const weeklyData = analytics?.weeklyProgress || [];
+  
+  const platformData = analytics?.taskDistribution ? [
+    { platform: "github" as const, taskCount: analytics.taskDistribution.github },
+    { platform: "calendar" as const, taskCount: analytics.taskDistribution.calendar },
+    { platform: "slack" as const, taskCount: analytics.taskDistribution.slack },
+  ] : [];
 
   // View title mapping
   const viewTitles: Record<DashboardView, string> = {
@@ -314,6 +321,8 @@ export default function Dashboard({ id }: DashboardProps) {
               tasks={formattedTasks}
               upcomingTasks={formattedUpcoming}
               onTaskComplete={handleTaskComplete}
+              userId={userId || undefined}
+              resolutionId={id}
             />
           </React.Fragment>
         );
@@ -323,7 +332,8 @@ export default function Dashboard({ id }: DashboardProps) {
             weeklyData={weeklyData}
             platformData={platformData}
             qualityScores={qualityScores}
-            improvement={43}
+            improvement={analytics?.trends.weekOverWeekChange || 0}
+            analytics={analytics}
           />
         );
       case "integrations":
@@ -340,13 +350,17 @@ export default function Dashboard({ id }: DashboardProps) {
         return (
           <InsightsView
             qualityScores={qualityScores}
-            improvement={43}
+            improvement={analytics?.trends.weekOverWeekChange || 0}
             coachMessage={{
               message: stats.coachMessage.message,
               confidence: stats.coachMessage.confidence,
             }}
-            auditInsight="Your GitHub activity is high, but Calendar sessions are being skipped. Recommendation: Move coding tasks to early morning."
-            auditStats={{ efficiency: 92, stability: 74 }}
+            auditInsight={analytics?.auditInsights.message || "Complete tasks to unlock AI insights."}
+            auditStats={{ 
+              efficiency: analytics?.auditInsights.efficiency || 0, 
+              stability: analytics?.auditInsights.stability || 0 
+            }}
+            analytics={analytics}
           />
         );
       default:

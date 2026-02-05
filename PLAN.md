@@ -6,7 +6,7 @@
 
 Rein is an AI-powered resolution execution platform that transforms New Year's resolutions into actionable plans, syncs them to real productivity tools, and uses advanced evaluation techniques to continuously improve its coaching quality.
 
-Unlike traditional AI planners that stop at generating advice, Rein:
+Unlike traditional AI planners that stop at generating advice, Rein:  
 
 - ✅ Turns vague resolutions into SMART, actionable goals
 - ✅ Generates personalized week-by-week execution plans

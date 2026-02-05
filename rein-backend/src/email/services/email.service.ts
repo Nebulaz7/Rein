@@ -53,7 +53,7 @@ export class EmailService {
     this.fromEmail = this.configService.get<string>('SMTP_USER') || 'noreply@rein.app';
     this.fromName = this.configService.get<string>('EMAIL_FROM_NAME') || 'Rein';
     
-    // Verify connection
+    // Verify connection (non-blocking)
     this.verifyConnection();
   }
 
@@ -62,8 +62,9 @@ export class EmailService {
       await this.transporter.verify();
       this.logger.log('✅ Email service connected successfully');
     } catch (error) {
-      this.logger.warn(`⚠️  Email service connection failed: ${error.message}`);
-      this.logger.warn('📧 Email service will attempt to reconnect on first send');
+      // Silently ignore connection errors on startup
+      // Transporter will handle reconnection on first send
+      this.logger.warn(`⚠️  Email service connection error (ignored): ${error.message}`);
     }
   }
 

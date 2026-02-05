@@ -14,19 +14,13 @@ import {
   ExternalLink,
   Check,
   AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
-
-interface Integration {
-  id: string;
-  name: string;
-  platform: "github" | "calendar" | "slack";
-  status: "connected" | "synced" | "pending" | "error";
-  lastSync?: string;
-}
+import type { IntegrationStatus } from "@/lib/integrations";
 
 interface IntegrationsViewProps {
-  integrations: Integration[];
-  onSyncPlatforms: () => void;
+  integrations: IntegrationStatus[];
+  onSyncPlatforms: (platform?: string) => void;
   onLogCheckIn: () => void;
   onViewInsights: () => void;
   isSyncing: boolean;
@@ -63,12 +57,8 @@ export default function IntegrationsView({
   onViewInsights,
   isSyncing,
 }: IntegrationsViewProps) {
-  const connectedCount = integrations.filter(
-    (i) => i.status === "connected" || i.status === "synced",
-  ).length;
-  const pendingCount = integrations.filter(
-    (i) => i.status === "pending",
-  ).length;
+  const connectedCount = integrations.filter((i) => i.connected).length;
+  const pendingCount = integrations.filter((i) => !i.connected).length;
 
   return (
     <div className="space-y-6">
@@ -137,13 +127,11 @@ export default function IntegrationsView({
                 slack: MessageSquare,
               };
               const Icon = icons[integration.platform];
-              const isConnected =
-                integration.status === "connected" ||
-                integration.status === "synced";
+              const isConnected = integration.connected;
 
               return (
                 <Card
-                  key={integration.id}
+                  key={integration.platform}
                   className="p-4 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:-translate-y-1 transition-all"
                 >
                   <div className="flex items-start justify-between">
@@ -160,13 +148,16 @@ export default function IntegrationsView({
                         />
                       </div>
                       <div>
-                        <h4 className="font-bold">{integration.name}</h4>
+                        <h4 className="font-bold">
+                          {integration.platform === 'github' ? 'GitHub' : 
+                           integration.platform === 'calendar' ? 'Google Calendar' : 'Slack'}
+                        </h4>
                         <p className="text-xs text-muted-foreground">
                           {integration.lastSync
-                            ? `Last synced ${integration.lastSync}`
-                            : integration.status === "pending"
-                              ? "Pending authorization"
-                              : "Connected"}
+                            ? `Last synced ${new Date(integration.lastSync).toLocaleString()}`
+                            : isConnected
+                              ? "Connected"
+                              : "Not connected"}
                         </p>
                       </div>
                     </div>
@@ -177,7 +168,7 @@ export default function IntegrationsView({
                           : "bg-yellow-500/20 text-yellow-700 border-yellow-500"
                       }
                     >
-                      {integration.status}
+                      {isConnected ? 'connected' : 'pending'}
                     </Badge>
                   </div>
 
@@ -185,9 +176,15 @@ export default function IntegrationsView({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 border-2 border-black"
+                      className="flex-1 border-2 border-black font-bold uppercase"
+                      onClick={() => integration.platform === 'calendar' ? onSyncPlatforms('calendar') : undefined}
+                      disabled={isSyncing || (integration.platform !== 'calendar')}
                     >
-                      Configure
+                      {integration.platform === 'calendar' ? (
+                        <>{isSyncing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />} Sync Roadmap</>
+                      ) : (
+                        'Sync'
+                      )}
                     </Button>
                     <Button
                       variant="outline"

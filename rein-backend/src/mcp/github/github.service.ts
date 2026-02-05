@@ -29,6 +29,22 @@ export interface CreateIssueDto {
   assignees?: string[];
 }
 
+export interface CreateRepositoryDto {
+  userId: string;
+  name: string;
+  description?: string;
+  private?: boolean;
+  autoInit?: boolean;
+}
+
+export interface TaskData {
+  title: string;
+  description: string;
+  scheduledDate?: string;
+  stageTitle?: string;
+  resources?: Array<{ type: string; title: string; url: string }>;
+}
+
 @Injectable()
 export class GitHubService {
   private readonly logger = new Logger(GitHubService.name);
@@ -227,5 +243,141 @@ export class GitHubService {
       this.logger.error(`Failed to create GitHub issue: ${error.message}`, error.stack);
       throw new BadRequestException(`Failed to create GitHub issue: ${error.message}`);
     }
+  }
+
+  /**
+   * Create a new GitHub repository
+   */
+  async createRepository(dto: CreateRepositoryDto): Promise<any> {
+    this.logger.log(`Creating GitHub repository '${dto.name}' for user ${dto.userId}`);
+
+    try {
+      // Get user's GitHub account
+      const account = await this.getAccount(dto.userId);
+
+      // Create Octokit instance with user's access token
+      const octokit = await this.createOctokit(account.accessToken);
+
+      // Create the repository
+      const { data: repo } = await octokit.repos.createForAuthenticatedUser({
+        name: dto.name,
+        description: dto.description,
+        private: dto.private ?? true, // Default to private
+        auto_init: dto.autoInit ?? true, // Initialize with README
+      });
+
+      this.logger.log(`Created repository ${repo.full_name}`);
+
+      return {
+        id: repo.id,
+        name: repo.name,
+        fullName: repo.full_name,
+        owner: repo.owner.login,
+        repoUrl: repo.full_name, // owner/repo format
+        htmlUrl: repo.html_url,
+        cloneUrl: repo.clone_url,
+        sshUrl: repo.ssh_url,
+        private: repo.private,
+        description: repo.description,
+        createdAt: repo.created_at,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to create GitHub repository: ${error.message}`, error.stack);
+      
+      // Handle specific errors
+      if (error.message.includes('name already exists')) {
+        throw new BadRequestException('A repository with this name already exists');
+      }
+      
+      throw new BadRequestException(`Failed to create repository: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get user's repositories
+   */
+  async getUserRepositories(userId: string, options: { sort?: 'created' | 'updated' | 'pushed' | 'full_name'; per_page?: number } = {}): Promise<any[]> {
+    this.logger.log(`Fetching repositories for user ${userId}`);
+
+    try {
+      // Get user's GitHub account
+      const account = await this.getAccount(userId);
+
+      // Create Octokit instance with user's access token
+      const octokit = await this.createOctokit(account.accessToken);
+
+      // Fetch repositories
+      const { data: repos } = await octokit.repos.listForAuthenticatedUser({
+        sort: options.sort || 'updated',
+        per_page: options.per_page || 100,
+      });
+
+      return repos.map((repo) => ({
+        id: repo.id,
+        name: repo.name,
+        fullName: repo.full_name,
+        repoUrl: repo.full_name,
+        htmlUrl: repo.html_url,
+        description: repo.description,
+        private: repo.private,
+        language: repo.language,
+        updatedAt: repo.updated_at,
+      }));
+    } catch (error) {
+      this.logger.error(`Failed to fetch repositories: ${error.message}`, error.stack);
+      throw new BadRequestException('Failed to fetch repositories');
+    }
+  }
+
+  /**
+   * Format a roadmap task as a GitHub issue body (Markdown)
+   */
+  formatTaskAsIssue(task: TaskData): string {
+    const {
+      title,
+      description,
+      scheduledDate,
+      stageTitle,
+      resources = [],
+    } = task;
+
+    let markdown = `## 🎯 Learning Task: ${title}\n\n`;
+
+    // Description
+    if (description) {
+      markdown += `### Description\n${description}\n\n`;
+    }
+
+    // Scheduled date
+    if (scheduledDate) {
+      markdown += `### 📅 Scheduled Date\n${scheduledDate}\n\n`;
+    }
+
+    // Stage info
+    if (stageTitle) {
+      markdown += `### 📚 Stage\n${stageTitle}\n\n`;
+    }
+
+    // Resources
+    if (resources.length > 0) {
+      markdown += `### 📖 Resources\n`;
+      resources.forEach((resource) => {
+        const emoji = resource.type === 'video' ? '📺' : '📄';
+        markdown += `- ${emoji} [${resource.title}](${resource.url})\n`;
+      });
+      markdown += '\n';
+    }
+
+    // Acceptance criteria
+    markdown += `### ✅ Acceptance Criteria\n`;
+    markdown += `- [ ] Complete the implementation\n`;
+    markdown += `- [ ] Test the functionality\n`;
+    markdown += `- [ ] Document key learnings\n\n`;
+
+    // Footer
+    markdown += `---\n`;
+    markdown += `*This issue was auto-created from Rein AI Learning Roadmap*\n`;
+
+    return markdown;
   }
 }

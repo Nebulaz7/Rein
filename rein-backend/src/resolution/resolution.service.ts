@@ -9,7 +9,7 @@ export class ResolutionService {
     private readonly emailService: EmailService,
   ) {}
 
-  async create(userId: string, title: string, goal: string, roadmap: any) {
+  async create(userId: string, title: string, goal: string, roadmap: any, suggestedPlatforms?: string[]) {
     // Ensure user exists in the database
     await this.ensureUserExists(userId);
 
@@ -25,6 +25,7 @@ export class ResolutionService {
         startDate,
         endDate,
         status: 'active',
+        suggestedPlatforms: suggestedPlatforms || ['calendar'],
       },
     });
 
@@ -185,23 +186,40 @@ export class ResolutionService {
       return null;
     }
 
+    // Get suggested platforms array (fallback to calendar)
+    const suggestedPlatforms = (resolution.suggestedPlatforms as string[]) || ['calendar'];
+
     const roadmap = resolution.roadmap as any;
     const stages = Array.isArray(roadmap) ? roadmap : [];
     
     let allTasks: any[] = [];
     stages.forEach((stage: any, stageIndex: number) => {
       if (stage.nodes && Array.isArray(stage.nodes)) {
-        const tasksFromNodes = stage.nodes.map((node: any) => ({
-          id: node.id,
-          title: node.title,
-          description: node.description,
-          time: node.scheduledDate, // Map scheduledDate to time for display
-          completed: node.completed || false,
-          platform: 'calendar', // Default to calendar for now
-          stageNumber: stageIndex + 1,
-          stageTitle: stage.title,
-          resources: node.resources || [],
-        }));
+        const tasksFromNodes = stage.nodes.map((node: any) => {
+          // Determine platform based on node type
+          let platform = 'calendar'; // Default fallback
+          
+          // If node is practical/code-related AND GitHub is suggested, use GitHub
+          if ((node.isPractical || node.githubReady) && suggestedPlatforms.includes('github')) {
+            platform = 'github';
+          }
+          // Otherwise use the first suggested platform (or calendar fallback)
+          else if (suggestedPlatforms.length > 0) {
+            platform = suggestedPlatforms[0];
+          }
+          
+          return {
+            id: node.id,
+            title: node.title,
+            description: node.description,
+            time: node.scheduledDate, // Map scheduledDate to time for display
+            completed: node.completed || false,
+            platform: platform, // Smart platform selection per node
+            stageNumber: stageIndex + 1,
+            stageTitle: stage.title,
+            resources: node.resources || [],
+          };
+        });
         allTasks = [...allTasks, ...tasksFromNodes];
       }
     });
@@ -219,6 +237,9 @@ export class ResolutionService {
       return null;
     }
 
+    // Get suggested platforms array (fallback to calendar)
+    const suggestedPlatforms = (resolution.suggestedPlatforms as string[]) || ['calendar'];
+
     const roadmap = resolution.roadmap as any;
     const stages = Array.isArray(roadmap) ? roadmap : [];
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
@@ -228,17 +249,31 @@ export class ResolutionService {
       if (stage.nodes && Array.isArray(stage.nodes)) {
         const nodes = stage.nodes
           .filter((node: any) => !node.completed && node.scheduledDate >= today)
-          .map((node: any) => ({
-            id: node.id,
-            title: node.title,
-            description: node.description,
-            time: node.scheduledDate,
-            completed: node.completed || false,
-            platform: 'calendar',
-            stageNumber: stageIndex + 1,
-            stageTitle: stage.title,
-            resources: node.resources || [],
-          }));
+          .map((node: any) => {
+            // Determine platform based on node type
+            let platform = 'calendar'; // Default fallback
+            
+            // If node is practical/code-related AND GitHub is suggested, use GitHub
+            if ((node.isPractical || node.githubReady) && suggestedPlatforms.includes('github')) {
+              platform = 'github';
+            }
+            // Otherwise use the first suggested platform (or calendar fallback)
+            else if (suggestedPlatforms.length > 0) {
+              platform = suggestedPlatforms[0];
+            }
+            
+            return {
+              id: node.id,
+              title: node.title,
+              description: node.description,
+              time: node.scheduledDate,
+              completed: node.completed || false,
+              platform: platform, // Smart platform selection per node
+              stageNumber: stageIndex + 1,
+              stageTitle: stage.title,
+              resources: node.resources || [],
+            };
+          });
         upcomingNodes = [...upcomingNodes, ...nodes];
       }
     });
@@ -335,6 +370,62 @@ export class ResolutionService {
     }
 
     return { success: true, taskId, completed };
+  }
+
+  async updateTaskGitHubMetadata(
+    id: string,
+    taskId: string,
+    userId: string,
+    metadata: {
+      githubIssueUrl?: string;
+      githubRepoUrl?: string;
+      githubIssueNumber?: number;
+      githubDeclined?: boolean;
+    },
+  ) {
+    const resolution = await this.findOne(id, userId);
+    if (!resolution) {
+      throw new NotFoundException('Resolution not found');
+    }
+
+    // Parse and update the roadmap
+    const roadmap = resolution.roadmap as any;
+    const stages = Array.isArray(roadmap) ? roadmap : [];
+    
+    let taskFound = false;
+    
+    const updatedStages = stages.map((stage: any) => {
+      if (stage.nodes && Array.isArray(stage.nodes)) {
+        const updatedNodes = stage.nodes.map((node: any) => {
+          if (node.id === taskId) {
+            taskFound = true;
+            return {
+              ...node,
+              githubIssueUrl: metadata.githubIssueUrl ?? node.githubIssueUrl,
+              githubRepoUrl: metadata.githubRepoUrl ?? node.githubRepoUrl,
+              githubIssueNumber: metadata.githubIssueNumber ?? node.githubIssueNumber,
+              githubDeclined: metadata.githubDeclined ?? node.githubDeclined,
+              githubSyncedAt: metadata.githubIssueUrl ? new Date().toISOString() : node.githubSyncedAt,
+            };
+          }
+          return node;
+        });
+        return { ...stage, nodes: updatedNodes };
+      }
+      return stage;
+    });
+
+    if (!taskFound) {
+      throw new NotFoundException('Task not found');
+    }
+
+    // Update roadmap in Resolution
+    await this.prisma.resolution.update({
+      where: { id, userId },
+      data: { roadmap: updatedStages },
+    });
+
+    return { success: true, taskId, metadata };
   }
 
   /**

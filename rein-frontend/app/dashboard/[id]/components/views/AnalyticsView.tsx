@@ -6,6 +6,7 @@ import PlatformDistribution from "../PlatformDistribution";
 import OpikQualityScores from "../OpikQualityScores";
 import { Card } from "@/components/ui/card";
 import { TrendingUp, Target, Zap } from "lucide-react";
+import type { PerformanceSummary } from "@/lib/analytics";
 
 interface WeeklyData {
   day: string;
@@ -30,6 +31,7 @@ interface AnalyticsViewProps {
   platformData: PlatformData[];
   qualityScores: QualityScore[];
   improvement: number;
+  analytics: PerformanceSummary | null;
 }
 
 export default function AnalyticsView({
@@ -37,6 +39,7 @@ export default function AnalyticsView({
   platformData,
   qualityScores,
   improvement,
+  analytics,
 }: AnalyticsViewProps) {
   // Calculate some stats
   const totalCompleted = weeklyData.reduce((sum, d) => sum + d.completed, 0);

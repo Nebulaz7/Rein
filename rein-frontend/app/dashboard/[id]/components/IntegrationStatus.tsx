@@ -4,18 +4,11 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Github, Calendar, MessageSquare, RefreshCw } from "lucide-react";
-
-interface Integration {
-  id: string;
-  name: string;
-  platform: "github" | "calendar" | "slack";
-  status: "connected" | "synced" | "pending" | "error";
-  lastSync?: string;
-}
+import { IntegrationStatus as IntegrationStatusType } from "@/lib/integrations";
 
 interface IntegrationStatusProps {
-  integrations: Integration[];
-  onRefresh?: (integrationId: string) => void;
+  integrations: IntegrationStatusType[];
+  onRefresh?: () => void;
 }
 
 const platformIcons = {
@@ -30,47 +23,26 @@ const platformColors = {
   slack: "text-purple-600",
 };
 
-const statusConfig = {
-  connected: {
-    label: "Connected",
-    className: "bg-green-500/20 text-green-700 border-green-500",
-  },
-  synced: {
-    label: "Synced",
-    className: "bg-green-500/20 text-green-700 border-green-500",
-  },
-  pending: {
-    label: "Pending auth",
-    className: "bg-yellow-500/20 text-yellow-700 border-yellow-500",
-  },
-  error: {
-    label: "Error",
-    className: "bg-red-500/20 text-red-700 border-red-500",
-  },
+const platformNames = {
+  github: "GitHub",
+  calendar: "Google Calendar",
+  slack: "Slack",
+};
+
+const getStatusConfig = (connected: boolean) => {
+  return connected
+    ? {
+        label: "Connected",
+        className: "bg-green-500/20 text-green-700 border-green-500",
+      }
+    : {
+        label: "Not Connected",
+        className: "bg-gray-500/20 text-gray-700 border-gray-500",
+      };
 };
 
 export default function IntegrationStatus({
-  integrations = [
-    {
-      id: "1",
-      name: "GitHub",
-      platform: "github" as const,
-      status: "connected" as const,
-    },
-    {
-      id: "2",
-      name: "Google Calendar",
-      platform: "calendar" as const,
-      status: "synced" as const,
-      lastSync: "2m ago",
-    },
-    {
-      id: "3",
-      name: "Slack",
-      platform: "slack" as const,
-      status: "pending" as const,
-    },
-  ],
+  integrations = [],
   onRefresh,
 }: IntegrationStatusProps) {
   return (
@@ -78,7 +50,7 @@ export default function IntegrationStatus({
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-black uppercase text-sm">Integrations</h3>
         <button
-          onClick={() => integrations.forEach((i) => onRefresh?.(i.id))}
+          onClick={() => onRefresh?.()}
           className="p-1 rounded hover:bg-secondary transition-colors"
         >
           <RefreshCw className="w-4 h-4 text-muted-foreground" />
@@ -89,21 +61,22 @@ export default function IntegrationStatus({
         {integrations.map((integration) => {
           const Icon = platformIcons[integration.platform];
           const iconColor = platformColors[integration.platform];
-          const status = statusConfig[integration.status];
+          const name = platformNames[integration.platform];
+          const statusConfig = getStatusConfig(integration.connected);
 
           return (
             <div
-              key={integration.id}
+              key={integration.platform}
               className="flex items-center justify-between"
             >
               <div className="flex items-center gap-2">
                 <Icon className={`w-5 h-5 ${iconColor}`} />
-                <span className="font-bold text-sm">{integration.name}</span>
+                <span className="font-bold text-sm">{name}</span>
               </div>
-              <Badge className={status.className}>
-                {integration.lastSync
+              <Badge className={statusConfig.className}>
+                {integration.connected && integration.lastSync
                   ? `Synced ${integration.lastSync}`
-                  : status.label}
+                  : statusConfig.label}
               </Badge>
             </div>
           );

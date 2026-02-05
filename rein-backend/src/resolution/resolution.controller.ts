@@ -1,14 +1,20 @@
 import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
 import { ResolutionService } from './resolution.service';
+import { GoalScoringService } from '../analytics/goal-scoring.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('resolution')
 export class ResolutionController {
-  constructor(private readonly resolutionService: ResolutionService,) {}
+  constructor(
+    private readonly resolutionService: ResolutionService,
+    private readonly goalScoringService: GoalScoringService,
+    private readonly prismaService: PrismaService,
+  ) {}
 
   @Post()
-  async create(@Body() body: { userId: string; title: string; goal: string; roadmap: any }) {
-    const { userId, title, goal, roadmap } = body;
-    return this.resolutionService.create(userId, title, goal, roadmap);
+  async create(@Body() body: { userId: string; title: string; goal: string; roadmap: any; suggestedPlatforms?: string[] }) {
+    const { userId, title, goal, roadmap, suggestedPlatforms } = body;
+    return this.resolutionService.create(userId, title, goal, roadmap, suggestedPlatforms);
   }
 
   @Get('user/:userId')
@@ -70,4 +76,61 @@ export class ResolutionController {
   ) {
     return this.resolutionService.updateTaskStatus(id, taskId, body.userId, body.completed);
   }
+
+  @Patch(':id/tasks/:taskId/github')
+  async updateTaskGitHub(
+    @Param('id') id: string,
+    @Param('taskId') taskId: string,
+    @Body() body: { 
+      userId: string; 
+      githubIssueUrl?: string;
+      githubRepoUrl?: string;
+      githubIssueNumber?: number;
+      githubDeclined?: boolean;
+    },
+  ) {
+    return this.resolutionService.updateTaskGitHubMetadata(id, taskId, body.userId, {
+      githubIssueUrl: body.githubIssueUrl,
+      githubRepoUrl: body.githubRepoUrl,
+      githubIssueNumber: body.githubIssueNumber,
+      githubDeclined: body.githubDeclined,
+    });
+  }
+
+  @Post(':id/tasks/:taskId/github/decline')
+  async declineTaskGitHubSync(
+    @Param('id') id: string,
+    @Param('taskId') taskId: string,
+    @Body() body: { userId: string },
+  ) {
+    return this.resolutionService.updateTaskGitHubMetadata(id, taskId, body.userId, {
+      githubDeclined: true,
+    });
+  }
+
+  @Post('resolutions/:id/score')
+async scoreResolution(
+  @Param('id') id: string,
+  @Body() body: { userContext?: any },
+) {
+  const resolution = await this.prismaService.resolution.findUnique({
+    where: { id },
+  });
+  
+  if (!resolution) {
+    throw new NotFoundException('Resolution not found');
+  }
+  
+  // Transform to match expected interface
+  const resolutionData = {
+    title: resolution.title,
+    goal: resolution.goal,
+    roadmap: resolution.roadmap,
+    suggestedPlatforms: Array.isArray(resolution.suggestedPlatforms) 
+      ? resolution.suggestedPlatforms as string[]
+      : undefined,
+  };
+  
+  return this.goalScoringService.scoreGoal(id, resolutionData, body.userContext);
+}
 }

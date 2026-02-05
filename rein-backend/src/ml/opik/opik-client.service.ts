@@ -161,4 +161,52 @@ export class OpikClientService implements OnModuleInit, OnModuleDestroy {
       reason,
     });
   }
+
+  /**
+   * Generate LLM content with Gemini and trace it
+   */
+  async llmGenerate(
+    systemPrompt: string,
+    userPrompt: string,
+    trace: OpikTrace,
+  ): Promise<any> {
+    try {
+      const { GoogleGenAI } = await import('@google/genai');
+      const genAI = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY!,
+      });
+
+      const prompt = `${systemPrompt}\n\nUser input: ${userPrompt}\nOutput as JSON only.`;
+      
+      // Create input span
+      const inputSpan = this.createSpan(trace, 'llm_input', { 
+        system: systemPrompt, 
+        user: userPrompt 
+      });
+      this.endSpan(inputSpan);
+
+      const result = await genAI.models.generateContent({
+        model: 'gemini-2.5-flash-lite',
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      });
+      const responseText = result.text || '';
+      
+      // Parse JSON safely
+      let output: any;
+      try {
+        output = JSON.parse(responseText);
+      } catch {
+        output = { raw: responseText };
+      }
+
+      // Create output span
+      const outputSpan = this.createSpan(trace, 'llm_output', { output });
+      this.endSpan(outputSpan);
+
+      return output;
+    } catch (error: any) {
+      this.logger.error(`LLM generation failed: ${error.message}`);
+      throw error;
+    }
+  }
 }

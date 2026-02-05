@@ -18,12 +18,16 @@ interface TasksViewProps {
   tasks: Task[];
   upcomingTasks: UpcomingTask[];
   onTaskComplete: (taskId: string) => void;
+  userId?: string;
+  resolutionId?: string;
 }
 
 export default function TasksView({
   tasks,
   upcomingTasks,
   onTaskComplete,
+  userId,
+  resolutionId,
 }: TasksViewProps) {
   const completedCount = tasks.filter((t) => t.completed).length;
   const pendingCount = tasks.filter((t) => !t.completed).length;
@@ -79,7 +83,12 @@ export default function TasksView({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Today's Tasks - 8 columns */}
         <div className="lg:col-span-8">
-          <ExecutionTimeline tasks={tasks} onTaskComplete={onTaskComplete} />
+          <ExecutionTimeline 
+            tasks={tasks} 
+            onTaskComplete={onTaskComplete}
+            userId={userId}
+            resolutionId={resolutionId}
+          />
         </div>
 
         {/* Upcoming Tasks - 4 columns */}
