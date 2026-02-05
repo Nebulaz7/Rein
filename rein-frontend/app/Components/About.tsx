@@ -13,6 +13,7 @@ import {
   GitBranch,
   Link2,
 } from "lucide-react";
+import CalenderSvg from "../svgs/CalenderSvg";
 
 const About = () => {
   const features = [
@@ -176,16 +177,7 @@ const About = () => {
                 <span className="text-xs font-medium">GitHub</span>
               </div>
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border border-border">
-                <svg
-                  className="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path
-                    d="M19.5 3h-15A1.5 1.5 0 003 4.5v15A1.5 1.5 0 004.5 21h15a1.5 1.5 0 001.5-1.5v-15A1.5 1.5 0 0019.5 3zm-2.625 13.5h-1.875v-6.75h1.875v6.75zm-3.75 0H11.25V12h1.875v4.5zm-3.75 0H7.5v-3h1.875v3z"
-                    fill="#4285F4"
-                  />
-                </svg>
+                <CalenderSvg className="w-4 h-4" />
                 <span className="text-xs font-medium">Calendar</span>
               </div>
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border border-border">

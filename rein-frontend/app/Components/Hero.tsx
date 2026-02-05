@@ -151,10 +151,13 @@ const Hero = () => {
                 <div className="relative h-32 bg-gradient-to-br from-blue-500/20 via-indigo-500/10 to-transparent overflow-hidden p-3">
                   <div className="flex flex-col gap-2 h-full">
                     <div className="flex gap-2 items-start">
-                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                        <span className="text-[10px] text-white font-bold">
-                          R
-                        </span>
+                      <div className="w-6 h-6 rounded-full bg-transparent flex items-center justify-center flex-shrink-0">
+                        <Image
+                          src="/rein-logo.png"
+                          alt="Rein Logo"
+                          width={12}
+                          height={12}
+                        />
                       </div>
                       <div className="bg-background/90 rounded-lg rounded-tl-none px-3 py-2 border border-border max-w-[80%]">
                         <p className="text-[10px] text-foreground">
@@ -170,8 +173,8 @@ const Hero = () => {
                       </div>
                     </div>
                     <div className="flex gap-2 items-start">
-                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                        <Brain className="w-3 h-3 text-white" />
+                      <div className="w-6 h-6 rounded-full bg-transparent flex items-center justify-center flex-shrink-0">
+                        <Brain className="w-3 h-3 text-primary" />
                       </div>
                       <div className="bg-background/90 rounded-lg rounded-tl-none px-3 py-2 border border-border">
                         <p className="text-[10px] text-foreground">
