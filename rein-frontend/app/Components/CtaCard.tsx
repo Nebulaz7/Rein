@@ -7,7 +7,7 @@ import Image from "next/image";
 const CtaCard = () => {
   return (
     <motion.div
-      className="mt-10 mb-10 xl:mt-20 2xl:mt-30 text-center"
+      className="mt-10 mb-20 xl:mt-20 2xl:mt-30 text-center"
       initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
