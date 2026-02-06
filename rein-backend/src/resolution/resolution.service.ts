@@ -25,16 +25,27 @@ export class ResolutionService {
   ) {}
 
 async create(createResolutionDto: CreateResolutionDto) {
-  const { userId, email, name, ...resolutionData } = createResolutionDto;
+  const { userId, email, name, title, goal, roadmap, suggestedPlatforms, startDate, endDate } = createResolutionDto;
 
   // Ensure user exists and get the actual userId to use
   const actualUserId = await this.ensureUserExists(userId, email, name);
 
-  // Create resolution with the actual userId
+  // Extract dates from roadmap if not provided
+  const dates = startDate && endDate 
+    ? { startDate, endDate }
+    : this.extractDatesFromRoadmap(roadmap);
+
+  // Create resolution with ONLY the fields that exist in the schema
   const resolution = await this.prisma.resolution.create({
     data: {
-      ...resolutionData,
       userId: actualUserId,
+      title,
+      goal,
+      roadmap,
+      suggestedPlatforms: suggestedPlatforms || [],
+      startDate: dates.startDate,
+      endDate: dates.endDate,
+      isPublic: false, // default value
     },
   });
 
