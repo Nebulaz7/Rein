@@ -1,26 +1,45 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from './email.service';
 import { EmailType } from '../types/email.types';
+import { LazyJobScheduler } from '../../common/lazy-job-scheduler.service';
 
 @Injectable()
-export class EmailSchedulerService {
+export class EmailSchedulerService implements OnModuleInit {
   private readonly logger = new Logger(EmailSchedulerService.name);
 
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    private lazyJobScheduler: LazyJobScheduler,
   ) {}
 
   /**
-   * Run every hour to check for streak reminders
-   * Sends reminder at 6 PM (18:00) user's local time if:
+   * Register jobs on module init
+   */
+  async onModuleInit() {
+    // Register streak reminder job (runs every 1 hour)
+    this.lazyJobScheduler.registerJob(
+      'email-streak-reminders',
+      1, // every 1 hour
+      () => this.checkStreakReminders(),
+    );
+
+    // Register weekly digest job (runs every 168 hours = 1 week)
+    this.lazyJobScheduler.registerJob(
+      'email-weekly-digests',
+      168, // every 1 week
+      () => this.sendWeeklyDigests(),
+    );
+  }
+
+  /**
+   * Check for streak reminders
+   * Sends reminder if:
    * - User has no activity today
    * - User's streak >= 3 days
    * - User hasn't received reminder today
    */
-  @Cron(CronExpression.EVERY_HOUR)
   async checkStreakReminders() {
     this.logger.log('Starting streak reminder check...');
 
@@ -122,12 +141,18 @@ export class EmailSchedulerService {
         // Skip if no pending tasks or streak < 3
         if (todaysTasks.length === 0 || highestStreak < 3) continue;
 
+        // Get the first active resolution ID for the dashboard link
+        const firstActiveResolution = user.resolutions.find(r => r.status === 'active');
+        const dashboardLink = firstActiveResolution 
+          ? `${process.env.FRONTEND_URL || 'https://rein.app'}/dashboard/${firstActiveResolution.id}`
+          : `${process.env.FRONTEND_URL || 'https://rein.app'}/chat`;
+
         // Send reminder
         await this.emailService.sendStreakReminder(user.email, user.id, {
           userName: user.name || 'there',
           currentStreak: highestStreak,
           todaysTasks,
-          appLink: `${process.env.FRONTEND_URL || 'https://rein.app'}/resolutions`,
+          appLink: dashboardLink,
         });
 
         sentCount++;
@@ -135,15 +160,13 @@ export class EmailSchedulerService {
 
       this.logger.log(`Sent ${sentCount} streak reminder emails`);
     } catch (error) {
-      this.logger.error(`Error in streak reminder cron: ${error.message}`);
+      this.logger.error(`Error in streak reminder job: ${error.message}`);
     }
   }
 
   /**
-   * Run every Sunday at 9 AM UTC to send weekly digests
-   * Adjust timing based on user timezone in production
+   * Send weekly digests
    */
-  @Cron('0 9 * * 0') // Every Sunday at 9 AM
   async sendWeeklyDigests() {
     this.logger.log('Starting weekly digest send...');
 

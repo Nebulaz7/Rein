@@ -1,17 +1,17 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
 import { EmailService } from './services/email.service';
 import { EmailTemplateService } from './services/email-template.service';
 import { EmailSchedulerService } from './services/email-scheduler.service';
 import { EmailController } from './email.controller';
 import { PrismaModule } from '../prisma/prisma.module';
+import { CommonModule } from '../common/common.module';
 
 @Module({
   imports: [
     ConfigModule,
-    ScheduleModule.forRoot(), // Enable cron jobs
     PrismaModule,
+    CommonModule, // Provides LazyJobScheduler
   ],
   controllers: [EmailController],
   providers: [EmailService, EmailTemplateService, EmailSchedulerService],

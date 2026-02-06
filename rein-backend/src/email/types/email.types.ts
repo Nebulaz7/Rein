@@ -19,6 +19,7 @@ export interface WelcomeEmailData {
   durationInDays: number;
   firstNodeTitle: string;
   firstNodeDate: string;
+  resolutionId: string; // For linking to dashboard
 }
 
 export interface StreakReminderData {

@@ -48,12 +48,12 @@ export class SlackAuthController {
       );
 
       // Redirect back to your frontend with success
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-      return res.redirect(`${frontendUrl}/settings?slack=connected`);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/home`);
     } catch (error) {
       this.logger.error(`OAuth callback failed: ${error.message}`);
       
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       return res.redirect(`${frontendUrl}/settings?slack=error&message=${encodeURIComponent(error.message)}`);
     }
   }

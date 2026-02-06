@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
 import { McpSlackService } from './mcp-slack.service';
+import { SlackSchedulerService } from './slack-scheduler.service';
 import type {
   CreateCommitmentDto,
   SendReminderDto,
@@ -7,9 +8,12 @@ import type {
   EscalateDto,
 } from '../../anchor/types/anchor.types';
 
-@Controller('anchor')
+@Controller('slack')
 export class McpSlackController {
-  constructor(private readonly slackService: McpSlackService) {}
+  constructor(
+    private readonly slackService: McpSlackService,
+    private readonly schedulerService: SlackSchedulerService,
+  ) {}
 
   // ============================================
   // HEALTH CHECK
@@ -248,6 +252,49 @@ export class McpSlackController {
         '3_response': responseResult,
         '4_status': statusResult,
       },
+    };
+  }
+
+  // ============================================
+  // SCHEDULER ENDPOINTS
+  // ============================================
+
+  /**
+   * Test endpoint: Trigger Slack reminder cron for specific user
+   * POST /slack/test/cron/reminder/:userId
+   */
+  @Post('test/cron/reminder/:userId')
+  async testSlackReminderCron(@Param('userId') userId: string) {
+    await this.schedulerService.triggerSlackReminderTest(userId);
+    return {
+      success: true,
+      message: `Test Slack reminder sent to user ${userId}`,
+    };
+  }
+
+  /**
+   * Manually trigger reminder check (admin/debug)
+   * POST /slack/trigger/reminders
+   */
+  @Post('trigger/reminders')
+  async triggerReminders() {
+    await this.schedulerService.checkSlackReminders();
+    return {
+      success: true,
+      message: 'Slack reminder check triggered',
+    };
+  }
+
+  /**
+   * Manually trigger pending commitments check (admin/debug)
+   * POST /slack/trigger/pending
+   */
+  @Post('trigger/pending')
+  async triggerPendingCheck() {
+    await this.schedulerService.checkPendingCommitments();
+    return {
+      success: true,
+      message: 'Pending commitments check triggered',
     };
   }
 }

@@ -704,7 +704,7 @@ export default function ChatPage() {
         await Promise.all(syncPromises);
       }
 
-      // Redirect to dashboard
+      // Redirect to dashboard after successful sync
       router.push(`/dashboard/${currentResolution.id}`);
     } catch (err: any) {
       setError(err.message);
@@ -757,6 +757,8 @@ export default function ChatPage() {
         goal: result.description || prompt, // Use AI-generated description or fallback to prompt
         roadmap: result.resolution,
         suggestedPlatforms, // Pass the suggested platforms from preprocessor
+        userEmail: user.email || undefined, // Pass user email for welcome emails
+        userName: user.user_metadata?.name || user.email?.split('@')[0] || undefined, // Pass user name
       });
 
       // Store the saved resolution in state for syncing

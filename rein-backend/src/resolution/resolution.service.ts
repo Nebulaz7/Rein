@@ -1,17 +1,19 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/services/email.service';
 
 @Injectable()
 export class ResolutionService {
+  private readonly logger = new Logger(ResolutionService.name);
+  
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
   ) {}
 
-  async create(userId: string, title: string, goal: string, roadmap: any, suggestedPlatforms?: string[]) {
-    // Ensure user exists in the database
-    await this.ensureUserExists(userId);
+  async create(userId: string, title: string, goal: string, roadmap: any, suggestedPlatforms?: string[], userEmail?: string, userName?: string) {
+    // Ensure user exists in the database (with email if provided)
+    await this.ensureUserExists(userId, userEmail, userName);
 
     // Calculate start and end dates from roadmap
     const { startDate, endDate } = this.extractDatesFromRoadmap(roadmap);
@@ -37,19 +39,31 @@ export class ResolutionService {
 
   /**
    * Ensure user exists in database, create if not
+   * Now accepts email and name to populate user data
    */
-  private async ensureUserExists(userId: string): Promise<void> {
+  private async ensureUserExists(userId: string, email?: string, name?: string): Promise<void> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
 
     if (!user) {
       // Create user if doesn't exist
+      this.logger.log(`Creating new user ${userId} with email: ${email || 'none'}`);
       await this.prisma.user.create({
         data: {
           id: userId,
-          email: null,
-          name: null,
+          email: email || null,
+          name: name || null,
+        },
+      });
+    } else if (email && !user.email) {
+      // Update user with email if they don't have one
+      this.logger.log(`Updating user ${userId} with email: ${email}`);
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          email,
+          name: name || user.name,
         },
       });
     }
@@ -734,6 +748,8 @@ export class ResolutionService {
    */
   private async sendWelcomeEmailIfFirst(userId: string, resolution: any): Promise<void> {
     try {
+      this.logger.log(`🔍 Checking welcome email for user ${userId}`);
+      
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
         include: { 
@@ -742,14 +758,29 @@ export class ResolutionService {
         },
       });
 
-      if (!user || !user.email) return;
+      if (!user) {
+        this.logger.warn(`❌ User ${userId} not found, skipping welcome email`);
+        return;
+      }
+      
+      if (!user.email) {
+        this.logger.warn(`❌ User ${userId} has no email address, skipping welcome email`);
+        return;
+      }
+
+      this.logger.log(`📊 User ${userId} has ${user.resolutions.length} resolution(s), email: ${user.email}`);
 
       // Only send if this is their first resolution and they haven't opted out
       const shouldSendWelcome = 
         user.resolutions.length === 1 && 
         (!user.emailPreferences || user.emailPreferences.welcomeEmail !== false);
 
-      if (!shouldSendWelcome) return;
+      if (!shouldSendWelcome) {
+        this.logger.log(`⏭️ Skipping welcome email for user ${userId}: ${user.resolutions.length > 1 ? 'not first resolution' : 'opted out'}`);
+        return;
+      }
+
+      this.logger.log(`✅ Sending welcome email to ${user.email} for first resolution`);
 
       // Extract first node from roadmap
       const roadmap = resolution.roadmap as any;
@@ -780,16 +811,21 @@ export class ResolutionService {
           )
         : 90;
 
-      await this.emailService.sendWelcomeEmail(user.email, user.id, {
+      const emailSent = await this.emailService.sendWelcomeEmail(user.email, user.id, {
         userName: user.name || 'there',
         resolutionTitle: resolution.title,
         totalNodes,
         durationInDays,
         firstNodeTitle,
-        firstNodeDate,
-      });
+        firstNodeDate,        resolutionId: resolution.id,      });
+
+      if (emailSent) {
+        this.logger.log(`📧 Welcome email sent successfully to ${user.email}`);
+      } else {
+        this.logger.error(`❌ Failed to send welcome email to ${user.email}`);
+      }
     } catch (error) {
-      console.error('Failed to send welcome email:', error);
+      this.logger.error(`❌ Error sending welcome email: ${error.message}`, error.stack);
       // Don't throw - email failure shouldn't block resolution creation
     }
   }

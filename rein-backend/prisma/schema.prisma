@@ -308,3 +308,15 @@ model UserPerformanceSnapshot {
   @@index([userId, date])
   @@map("user_performance_snapshots")
 }
+
+model JobSchedule {
+  id            String   @id @default(uuid())
+  jobName       String   @unique @map("job_name")
+  lastRunAt     DateTime @map("last_run_at")
+  intervalHours Int      @map("interval_hours") // How often should this run
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  @@map("job_schedules")
+}

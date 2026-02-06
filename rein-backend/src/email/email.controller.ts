@@ -25,6 +25,7 @@ export class EmailController {
       userId: string;
       userName: string;
       resolutionTitle: string;
+      resolutionId?: string;
     },
   ) {
     const success = await this.emailService.sendWelcomeEmail(
@@ -37,6 +38,7 @@ export class EmailController {
         durationInDays: 90,
         firstNodeTitle: 'Introduction to the basics',
         firstNodeDate: 'Tomorrow, Feb 5',
+        resolutionId: body.resolutionId || 'test-resolution-id', // Use provided ID or default
       },
     );
 

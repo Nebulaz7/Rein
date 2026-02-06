@@ -41,7 +41,7 @@ export const baseTemplate = (content: string, preheader?: string): string => {
         font-family:
           -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
           'Helvetica Neue', Arial, sans-serif;
-        background-color: #0a0a0a;
+        background-color: #f5f5f5;
         color: #fafafa;
       }
 
@@ -298,7 +298,7 @@ export const baseTemplate = (content: string, preheader?: string): string => {
       cellpadding="0"
       border="0"
       width="100%"
-      style="background-color: #0a0a0a;"
+      style="background-color: #f5f5f5;"
     >
       <tr>
         <td style="padding: 40px 10px">
@@ -306,7 +306,7 @@ export const baseTemplate = (content: string, preheader?: string): string => {
             <!-- Header -->
             <div class="header">
               <a href="${process.env.FRONTEND_URL || 'https://rein.app'}" class="logo">
-                🎯 REIN
+                REIN
               </a>
             </div>
 

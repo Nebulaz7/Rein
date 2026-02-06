@@ -51,7 +51,7 @@ export const welcomeTemplate = (data: WelcomeEmailData): string => {
               </p>
 
               <a
-                href="${process.env.FRONTEND_URL || 'https://rein.app'}/resolutions"
+                href="${process.env.FRONTEND_URL || 'https://rein.app'}/dashboard/${data.resolutionId}"
                 class="button"
               >
                 View Your Roadmap
@@ -93,7 +93,7 @@ Your first task is scheduled for ${data.firstNodeDate}:
 
 Pro tip: Build a streak by completing tasks daily. Consistency is the key to achieving your goals!
 
-View your roadmap: ${process.env.FRONTEND_URL || 'https://rein.app'}/resolutions
+View your roadmap: ${process.env.FRONTEND_URL || 'https://rein.app'}/dashboard/${data.resolutionId}
 
 Need help getting started? Reply to this email — we're here to help!
 

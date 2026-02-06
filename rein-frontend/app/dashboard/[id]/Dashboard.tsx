@@ -185,8 +185,13 @@ export default function Dashboard({ id }: DashboardProps) {
           userId,
           5,
         );
-        // Keep raw dates for filtering, don't format yet
         setUpcomingTasks(upcomingData.tasks);
+
+        // Refetch analytics to update insights
+        const analyticsData = await analyticsAPI.getPerformanceSummary(id, 7);
+        if (analyticsData.success && analyticsData.data) {
+          setAnalytics(analyticsData.data);
+        }
       } catch (err) {
         console.error("Error updating task:", err);
         // Revert optimistic update
