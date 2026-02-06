@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
-export default function GitHubCallbackPage() {
+function GitHubCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -124,5 +124,26 @@ export default function GitHubCallbackPage() {
         <p className="text-center text-muted-foreground">{status}</p>
       </div>
     </div>
+  );
+}
+
+export default function GitHubCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+          <div className="max-w-md w-full p-8 bg-card border border-border rounded-lg shadow-lg">
+            <div className="flex items-center justify-center mb-6">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+            </div>
+            <h1 className="text-2xl font-bold text-center text-foreground mb-2">
+              Loading...
+            </h1>
+          </div>
+        </div>
+      }
+    >
+      <GitHubCallbackContent />
+    </Suspense>
   );
 }

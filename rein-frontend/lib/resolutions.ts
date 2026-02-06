@@ -19,37 +19,41 @@ export interface CreateResolutionData {
   suggestedPlatforms?: string[];
 }
 
-export interface TaskResource {
-  type: "article" | "video";
+// Ensure TaskResource is defined like this:
+interface TaskResource {
+  type: string;
   title: string;
-  url: string;
+  link: string;
+  description: string;
 }
 
 export interface ResolutionTask {
   id: string;
   title: string;
   description?: string;
-  platform: "github" | "calendar" | "slack" | "jira";
-  time?: string;
+  platform: "github" | "calendar" | "jira" | "slack";
   completed: boolean;
-  resources?: TaskResource[];
+  time?: string;
+  stageNumber?: number;
+  stageTitle?: string;
+  resources?: TaskResource[]; // Use the named type
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export const resolutionAPI = {
   // Create a new resolution
   async create(data: CreateResolutionData): Promise<Resolution> {
     const response = await fetch(`${API_BASE_URL}/resolution`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to create resolution');
+      throw new Error("Failed to create resolution");
     }
 
     return response.json();
@@ -58,9 +62,9 @@ export const resolutionAPI = {
   // Get all resolutions for a user
   async getAllByUser(userId: string): Promise<Resolution[]> {
     const response = await fetch(`${API_BASE_URL}/resolution/user/${userId}`);
-    
+
     if (!response.ok) {
-      throw new Error('Failed to fetch resolutions');
+      throw new Error("Failed to fetch resolutions");
     }
 
     return response.json();
@@ -68,14 +72,14 @@ export const resolutionAPI = {
 
   // Get a specific resolution
   async getById(id: string, userId?: string): Promise<Resolution> {
-    const url = userId 
+    const url = userId
       ? `${API_BASE_URL}/resolution/${id}?userId=${userId}`
       : `${API_BASE_URL}/resolution/${id}`;
-    
+
     const response = await fetch(url);
-    
+
     if (!response.ok) {
-      throw new Error('Failed to fetch resolution');
+      throw new Error("Failed to fetch resolution");
     }
 
     return response.json();
@@ -83,29 +87,36 @@ export const resolutionAPI = {
 
   // Delete a resolution
   async delete(id: string, userId: string): Promise<{ success: boolean }> {
-    const response = await fetch(`${API_BASE_URL}/resolution/${id}?userId=${userId}`, {
-      method: 'DELETE',
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/resolution/${id}?userId=${userId}`,
+      {
+        method: "DELETE",
+      },
+    );
 
     if (!response.ok) {
-      throw new Error('Failed to delete resolution');
+      throw new Error("Failed to delete resolution");
     }
 
     return response.json();
   },
 
   // Toggle public status
-  async togglePublic(id: string, userId: string, isPublic: boolean): Promise<{ success: boolean }> {
+  async togglePublic(
+    id: string,
+    userId: string,
+    isPublic: boolean,
+  ): Promise<{ success: boolean }> {
     const response = await fetch(`${API_BASE_URL}/resolution/${id}/public`, {
-      method: 'PATCH',
+      method: "PATCH",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ userId, isPublic }),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to toggle resolution visibility');
+      throw new Error("Failed to toggle resolution visibility");
     }
 
     return response.json();
@@ -113,14 +124,14 @@ export const resolutionAPI = {
 
   // Get resolution stats for dashboard overview
   async getStats(id: string, userId?: string): Promise<ResolutionStats> {
-    const url = userId 
+    const url = userId
       ? `${API_BASE_URL}/resolution/${id}/stats?userId=${userId}`
       : `${API_BASE_URL}/resolution/${id}/stats`;
-    
+
     const response = await fetch(url);
-    
+
     if (!response.ok) {
-      throw new Error('Failed to fetch resolution stats');
+      throw new Error("Failed to fetch resolution stats");
     }
 
     return response.json();
@@ -128,29 +139,33 @@ export const resolutionAPI = {
 
   // Get all tasks for a resolution
   async getTasks(id: string, userId?: string): Promise<ResolutionTasks> {
-    const url = userId 
+    const url = userId
       ? `${API_BASE_URL}/resolution/${id}/tasks?userId=${userId}`
       : `${API_BASE_URL}/resolution/${id}/tasks`;
-    
+
     const response = await fetch(url);
-    
+
     if (!response.ok) {
-      throw new Error('Failed to fetch tasks');
+      throw new Error("Failed to fetch tasks");
     }
 
     return response.json();
   },
 
   // Get upcoming tasks
-  async getUpcomingTasks(id: string, userId?: string, limit: number = 5): Promise<UpcomingTasks> {
-    const url = userId 
+  async getUpcomingTasks(
+    id: string,
+    userId?: string,
+    limit: number = 5,
+  ): Promise<UpcomingTasks> {
+    const url = userId
       ? `${API_BASE_URL}/resolution/${id}/tasks/upcoming?userId=${userId}&limit=${limit}`
       : `${API_BASE_URL}/resolution/${id}/tasks/upcoming?limit=${limit}`;
-    
+
     const response = await fetch(url);
-    
+
     if (!response.ok) {
-      throw new Error('Failed to fetch upcoming tasks');
+      throw new Error("Failed to fetch upcoming tasks");
     }
 
     return response.json();
@@ -158,21 +173,24 @@ export const resolutionAPI = {
 
   // Update task completion status
   async updateTaskStatus(
-    resolutionId: string, 
-    taskId: string, 
-    userId: string, 
-    completed: boolean
+    resolutionId: string,
+    taskId: string,
+    userId: string,
+    completed: boolean,
   ): Promise<{ success: boolean; taskId: string; completed: boolean }> {
-    const response = await fetch(`${API_BASE_URL}/resolution/${resolutionId}/tasks/${taskId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
+    const response = await fetch(
+      `${API_BASE_URL}/resolution/${resolutionId}/tasks/${taskId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId, completed }),
       },
-      body: JSON.stringify({ userId, completed }),
-    });
+    );
 
     if (!response.ok) {
-      throw new Error('Failed to update task status');
+      throw new Error("Failed to update task status");
     }
 
     return response.json();
@@ -200,23 +218,6 @@ export interface ResolutionStats {
     message: string;
     confidence: number;
   };
-}
-
-export interface ResolutionTask {
-  id: string;
-  title: string;
-  description?: string;
-  platform: 'github' | 'calendar' | 'jira' | 'slack';
-  completed: boolean;
-  time?: string; // scheduledDate from backend
-  stageNumber?: number;
-  stageTitle?: string;
-  resources?: Array<{
-    type: string;
-    title: string;
-    link: string;
-    description: string;
-  }>;
 }
 
 export interface ResolutionTasks {

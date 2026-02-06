@@ -12,7 +12,11 @@ import {
   IntegrationsView,
   InsightsView,
 } from "./components";
-import { resolutionAPI, type ResolutionStats, type ResolutionTask } from "@/lib/resolutions";
+import {
+  resolutionAPI,
+  type ResolutionStats,
+  type ResolutionTask,
+} from "@/lib/resolutions";
 import { supabase } from "@/lib/supabase";
 import { formatScheduledDate } from "@/lib/utils";
 import { analyticsAPI, type PerformanceSummary } from "@/lib/analytics";
@@ -77,8 +81,10 @@ export default function Dashboard({ id }: DashboardProps) {
         setError(null);
 
         // Get user from Supabase
-        const { data: { user } } = await supabase.auth.getUser();
-        
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
         if (user) {
           setUserId(user.id);
 
@@ -92,7 +98,11 @@ export default function Dashboard({ id }: DashboardProps) {
           setTasks(tasksData.tasks);
 
           // Fetch upcoming tasks
-          const upcomingData = await resolutionAPI.getUpcomingTasks(id, user.id, 5);
+          const upcomingData = await resolutionAPI.getUpcomingTasks(
+            id,
+            user.id,
+            5,
+          );
           // Keep raw dates for filtering, don't format yet
           setUpcomingTasks(upcomingData.tasks);
 
@@ -116,13 +126,19 @@ export default function Dashboard({ id }: DashboardProps) {
           // Keep raw dates for filtering, don't format yet
           setTasks(tasksData.tasks);
 
-          const upcomingData = await resolutionAPI.getUpcomingTasks(id, undefined, 5);
+          const upcomingData = await resolutionAPI.getUpcomingTasks(
+            id,
+            undefined,
+            5,
+          );
           // Keep raw dates for filtering, don't format yet
           setUpcomingTasks(upcomingData.tasks);
         }
       } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+        console.error("Error fetching dashboard data:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to load dashboard data",
+        );
       } finally {
         setIsLoading(false);
       }
@@ -132,70 +148,85 @@ export default function Dashboard({ id }: DashboardProps) {
   }, [id]);
 
   // Handlers
-  const handleTaskComplete = useCallback(async (taskId: string) => {
-    if (!userId) {
-      console.error('User not authenticated');
-      return;
-    }
-
-    try {
-      // Optimistically update UI
-      setTasks((prev) =>
-        prev.map((task) =>
-          task.id === taskId ? { ...task, completed: !task.completed } : task,
-        ),
-      );
-
-      // Find the task to determine new completed status
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) return;
-
-      // Update on backend
-      await resolutionAPI.updateTaskStatus(id, taskId, userId, !task.completed);
-
-      // Refetch stats to update progress
-      const updatedStats = await resolutionAPI.getStats(id, userId);
-      setStats(updatedStats);
-
-      // Refetch upcoming tasks
-      const upcomingData = await resolutionAPI.getUpcomingTasks(id, userId, 5);
-      // Keep raw dates for filtering, don't format yet
-      setUpcomingTasks(upcomingData.tasks);
-    } catch (err) {
-      console.error('Error updating task:', err);
-      // Revert optimistic update
-      setTasks((prev) =>
-        prev.map((task) =>
-          task.id === taskId ? { ...task, completed: !task.completed } : task,
-        ),
-      );
-    }
-  }, [id, userId, tasks]);
-
-  const handleSyncPlatforms = useCallback(async (platform?: string) => {
-    if (!userId) return;
-
-    setIsSyncing(true);
-    try {
-      if (platform === 'calendar') {
-        const result = await integrationsAPI.syncCalendar(userId, id);
-        if (result.success) {
-          alert(result.message || 'Calendar synced successfully!');
-          // Refresh integrations status
-          const integrationsData = await integrationsAPI.getStatus(userId);
-          if (integrationsData.success && integrationsData.integrations) {
-            setIntegrations(integrationsData.integrations);
-          }
-        } else {
-          alert(`Failed to sync calendar: ${result.error}`);
-        }
+  const handleTaskComplete = useCallback(
+    async (taskId: string) => {
+      if (!userId) {
+        console.error("User not authenticated");
+        return;
       }
-    } catch (error) {
-      console.error('Sync error:', error);
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [userId, id]);
+
+      try {
+        // Optimistically update UI
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.id === taskId ? { ...task, completed: !task.completed } : task,
+          ),
+        );
+
+        // Find the task to determine new completed status
+        const task = tasks.find((t) => t.id === taskId);
+        if (!task) return;
+
+        // Update on backend
+        await resolutionAPI.updateTaskStatus(
+          id,
+          taskId,
+          userId,
+          !task.completed,
+        );
+
+        // Refetch stats to update progress
+        const updatedStats = await resolutionAPI.getStats(id, userId);
+        setStats(updatedStats);
+
+        // Refetch upcoming tasks
+        const upcomingData = await resolutionAPI.getUpcomingTasks(
+          id,
+          userId,
+          5,
+        );
+        // Keep raw dates for filtering, don't format yet
+        setUpcomingTasks(upcomingData.tasks);
+      } catch (err) {
+        console.error("Error updating task:", err);
+        // Revert optimistic update
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.id === taskId ? { ...task, completed: !task.completed } : task,
+          ),
+        );
+      }
+    },
+    [id, userId, tasks],
+  );
+
+  const handleSyncPlatforms = useCallback(
+    async (platform?: string) => {
+      if (!userId) return;
+
+      setIsSyncing(true);
+      try {
+        if (platform === "calendar") {
+          const result = await integrationsAPI.syncCalendar(userId, id);
+          if (result.success) {
+            alert(result.message || "Calendar synced successfully!");
+            // Refresh integrations status
+            const integrationsData = await integrationsAPI.getStatus(userId);
+            if (integrationsData.success && integrationsData.integrations) {
+              setIntegrations(integrationsData.integrations);
+            }
+          } else {
+            alert(`Failed to sync calendar: ${result.error}`);
+          }
+        }
+      } catch (error) {
+        console.error("Sync error:", error);
+      } finally {
+        setIsSyncing(false);
+      }
+    },
+    [userId, id],
+  );
 
   const handleLogCheckIn = useCallback(() => {
     console.log("Opening check-in modal...");
@@ -206,23 +237,42 @@ export default function Dashboard({ id }: DashboardProps) {
   }, []);
 
   // Derived data from analytics
-  const qualityScores = analytics ? [
-    { label: "Goal Clarity", score: analytics.qualityMetrics.goalClarity },
-    { label: "Task Actionability", score: analytics.qualityMetrics.taskActionability },
-    { label: "Personalization", score: analytics.qualityMetrics.personalization },
-  ] : [
-    { label: "Goal Clarity", score: 0 },
-    { label: "Task Actionability", score: 0 },
-    { label: "Personalization", score: 0 },
-  ];
+  const qualityScores = analytics
+    ? [
+        { label: "Goal Clarity", score: analytics.qualityMetrics.goalClarity },
+        {
+          label: "Task Actionability",
+          score: analytics.qualityMetrics.taskActionability,
+        },
+        {
+          label: "Personalization",
+          score: analytics.qualityMetrics.personalization,
+        },
+      ]
+    : [
+        { label: "Goal Clarity", score: 0 },
+        { label: "Task Actionability", score: 0 },
+        { label: "Personalization", score: 0 },
+      ];
 
   const weeklyData = analytics?.weeklyProgress || [];
-  
-  const platformData = analytics?.taskDistribution ? [
-    { platform: "github" as const, taskCount: analytics.taskDistribution.github },
-    { platform: "calendar" as const, taskCount: analytics.taskDistribution.calendar },
-    { platform: "slack" as const, taskCount: analytics.taskDistribution.slack },
-  ] : [];
+
+  const platformData = analytics?.taskDistribution
+    ? [
+        {
+          platform: "github" as const,
+          taskCount: analytics.taskDistribution.github,
+        },
+        {
+          platform: "calendar" as const,
+          taskCount: analytics.taskDistribution.calendar,
+        },
+        {
+          platform: "slack" as const,
+          taskCount: analytics.taskDistribution.slack,
+        },
+      ]
+    : [];
 
   // View title mapping
   const viewTitles: Record<DashboardView, string> = {
@@ -263,19 +313,29 @@ export default function Dashboard({ id }: DashboardProps) {
           <OverviewView
             streak={stats.stats.streak}
             progress={stats.stats.progress}
-            healthStatus={stats.stats.healthStatus as "getting-started" | "building" | "strong" | "elite"}
+            healthStatus={
+              stats.stats.healthStatus as
+                | "getting-started"
+                | "building"
+                | "strong"
+                | "elite"
+            }
             resolution={{
               title: stats.resolution.title,
               description: stats.resolution.description,
-              startDate: new Date(stats.resolution.startDate).toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric', 
-                year: 'numeric' 
+              startDate: new Date(
+                stats.resolution.startDate,
+              ).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
               }),
-              targetDate: new Date(stats.resolution.targetDate).toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric', 
-                year: 'numeric' 
+              targetDate: new Date(
+                stats.resolution.targetDate,
+              ).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
               }),
             }}
             coachMessage={{
@@ -286,33 +346,43 @@ export default function Dashboard({ id }: DashboardProps) {
         );
       case "tasks":
         // Filter tasks: only show today's tasks in main view
-        const todaysTasks = tasks.filter(task => isToday(task.time));
-        
+        const todaysTasks = tasks.filter((task) => isToday(task.time));
+
         // Filter upcoming: only show tomorrow's tasks
-        const tomorrowsTasks = upcomingTasks.filter(task => isTomorrow(task.time));
-        
+        const tomorrowsTasks = upcomingTasks.filter((task) =>
+          isTomorrow(task.time),
+        );
+
         // Convert ResolutionTask[] to Task[] format for today's tasks with formatted dates and resources
-        const formattedTasks: Task[] = todaysTasks.map(task => ({
+        const formattedTasks: Task[] = todaysTasks.map((task) => ({
           id: task.id,
           title: task.title,
           description: task.description,
-          platform: (task.platform === 'jira' ? 'github' : task.platform) as "github" | "calendar" | "slack",
+          platform: (task.platform === "jira" ? "github" : task.platform) as
+            | "github"
+            | "calendar"
+            | "slack",
           completed: task.completed,
           time: formatScheduledDate(task.time), // Format date for display
           // Add resources if they exist in the task
-          resources: task.resources ? task.resources.map(resource => ({
-            type: resource.type as "article" | "video",
-            title: resource.title,
-            url: resource.url,
-          })) : undefined,
+          resources: task.resources
+            ? task.resources.map((resource) => ({
+                type: resource.type as "article" | "video",
+                title: resource.title,
+                url: resource.link, // Map 'link' from source to 'url' in destination
+              }))
+            : undefined,
         }));
 
         // Format tomorrow's tasks with formatted dates
-        const formattedUpcoming = tomorrowsTasks.map(task => ({
+        const formattedUpcoming = tomorrowsTasks.map((task) => ({
           id: task.id,
           title: task.title,
           time: formatScheduledDate(task.time), // Format date for display
-          platform: (task.platform === 'jira' ? 'github' : task.platform) as "github" | "calendar" | "slack",
+          platform: (task.platform === "jira" ? "github" : task.platform) as
+            | "github"
+            | "calendar"
+            | "slack",
         }));
 
         return (
@@ -355,10 +425,13 @@ export default function Dashboard({ id }: DashboardProps) {
               message: stats.coachMessage.message,
               confidence: stats.coachMessage.confidence,
             }}
-            auditInsight={analytics?.auditInsights.message || "Complete tasks to unlock AI insights."}
-            auditStats={{ 
-              efficiency: analytics?.auditInsights.efficiency || 0, 
-              stability: analytics?.auditInsights.stability || 0 
+            auditInsight={
+              analytics?.auditInsights.message ||
+              "Complete tasks to unlock AI insights."
+            }
+            auditStats={{
+              efficiency: analytics?.auditInsights.efficiency || 0,
+              stability: analytics?.auditInsights.stability || 0,
             }}
             analytics={analytics}
           />
