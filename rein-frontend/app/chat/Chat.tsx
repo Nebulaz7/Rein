@@ -472,7 +472,22 @@ export default function ChatPage() {
       const data = await res.json();
 
       if (data.type === "skip") {
-        router.push("/resolution");
+        // No missing fields - proceed directly to implementation
+        // Stay on /chat page and show implementation phase
+        console.log('No missing fields detected, proceeding to implementation');
+        
+        // Set the session as ready and trigger implementation
+        setShowSummary(true);
+        setSession({
+          sessionId: data.session?.sessionId || `session-${Date.now()}`,
+          originalPrompt: prompt,
+          history: [],
+          roundCount: 0,
+          isAtLimit: false,
+          isReady: true,
+          summary: `Based on your goal: "${prompt}", we'll create an implementation plan.`,
+        });
+        
         return;
       }
 
