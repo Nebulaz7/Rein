@@ -5,6 +5,7 @@ services:
     env: node
     region: oregon # Change to your preferred region (oregon, frankfurt, singapore, etc.)
     plan: starter # Options: starter, standard, pro, or free
+    rootDir: rein-backend
     buildCommand: NODE_OPTIONS="--max-old-space-size=4096" npm ci && NODE_OPTIONS="--max-old-space-size=4096" npm run build && npm prune --omit=dev
     startCommand: npm run start:prod
     healthCheckPath: /health # Update if you have a different health check endpoint
