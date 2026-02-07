@@ -441,7 +441,7 @@ python main.py
 
 ---
 
-## Team
+## 👥 Team
 
 **[Peters Joshua]** - Frontend Development  
 **[Aderemi Ademola]** - Backend & Integrations  
@@ -465,6 +465,6 @@ python main.py
 
 ## License
 
-This project was built for the [Commit To Change: An AI Agents Hackathon Hackathon 2026](https://www.encodeclub.com/my-programmes/comet-resolution-v2-hackathon) — Track 1: Productivity & Work Habits.
+This project was built for the [Commit To Change: An AI Agents Hackathon 2026](https://www.encodeclub.com/my-programmes/comet-resolution-v2-hackathon) — Track 1: Productivity & Work Habits.
 
 _"AI you can trust, because you can see exactly how good it is."_
