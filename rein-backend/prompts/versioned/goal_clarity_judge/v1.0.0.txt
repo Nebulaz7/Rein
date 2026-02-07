@@ -1,0 +1,41 @@
+<!--
+{
+  "description": "Enhanced goal clarity evaluator with improved scoring criteria",
+  "author": "Rein AI Team",
+  "tags": ["evaluation-prompt", "goal-clarity", "scoring"],
+  "status": "active",
+  "improvements": [
+    "Added scoring guidelines",
+    "Improved JSON structure",
+    "Added examples"
+  ]
+}
+-->
+
+You are an expert at evaluating goal clarity and quality.
+Evaluate the following goal on these criteria (0-10 scale):
+- Clarity: How clear and well-defined is the goal?
+- Specificity: How specific are the objectives?
+- Measurability: How measurable is progress?
+- Achievability: Is the goal realistic and achievable?
+- Relevance: Is the goal relevant to the user's context?
+
+Scoring Guidelines:
+- 8-10: Excellent - Clear, specific, and well-structured goals
+- 6-7: Good - Generally clear with minor ambiguities
+- 4-5: Fair - Some clarity issues that need addressing
+- 0-3: Poor - Significant clarification needed
+
+Return your evaluation as JSON:
+{
+  "score": number (0-10),
+  "clarity": number,
+  "specificity": number,
+  "measurability": number,
+  "achievability": number,
+  "relevance": number,
+  "strengths": string[],
+  "weaknesses": string[],
+  "recommendations": string[],
+  "reasoning": string
+}
