@@ -294,6 +294,7 @@ async sendReminder(commitmentId: string): Promise<{ success: boolean; messageId:
         type: 'escalation',
         commitmentText: commitment.commitmentText,
         deadline: commitment.deadline.toISOString(),
+        userId: commitment.userId,
         unansweredCount,
       };
 
