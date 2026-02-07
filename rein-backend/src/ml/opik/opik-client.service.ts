@@ -111,14 +111,7 @@ export class OpikClientService implements OnModuleInit, OnModuleDestroy {
    * Log output and complete a trace
    */
   endTrace(trace: OpikTrace, output?: any): OpikTrace {
-    return trace.end({
-      output: output
-        ? {
-            data: output,
-            timestamp: new Date().toISOString(),
-          }
-        : undefined,
-    });
+    return trace.end();
   }
 
 

@@ -3,6 +3,18 @@ import { ResolutionService } from './resolution.service';
 import { GoalScoringService } from '../analytics/goal-scoring.service';
 import { PrismaService } from '../prisma/prisma.service';
 
+interface CreateResolutionDto {
+  userId: string;
+  email?: string;
+  name?: string;
+  title: string;
+  goal: string;
+  roadmap: any;
+  suggestedPlatforms?: string[];
+  startDate?: Date;
+  endDate?: Date;
+}
+
 @Controller('resolution')
 export class ResolutionController {
   constructor(
@@ -11,19 +23,10 @@ export class ResolutionController {
     private readonly prismaService: PrismaService,
   ) {}
 
-  @Post()
-  async create(@Body() body: { 
-    userId: string; 
-    title: string; 
-    goal: string; 
-    roadmap: any; 
-    suggestedPlatforms?: string[];
-    userEmail?: string;
-    userName?: string;
-  }) {
-    const { userId, title, goal, roadmap, suggestedPlatforms, userEmail, userName } = body;
-    return this.resolutionService.create(userId, title, goal, roadmap, suggestedPlatforms, userEmail, userName);
-  }
+@Post()
+async create(@Body() createResolutionDto: CreateResolutionDto) {
+  return this.resolutionService.create(createResolutionDto);
+}
 
   @Get('user/:userId')
   async getAllByUser(@Param('userId') userId: string) {
