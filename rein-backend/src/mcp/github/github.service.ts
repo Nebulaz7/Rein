@@ -118,53 +118,47 @@ export class GitHubService {
         }
       }
 
-      // Check if account already exists
-      let account = await this.prisma.gitHubAccount.findUnique({
-        where: { userId: dto.userId },
+      // Check if account already exists (by userId or githubId)
+      let account = await this.prisma.gitHubAccount.findFirst({
+        where: {
+          OR: [
+            { userId: dto.userId },
+            { githubId: String(githubUser.id) },
+          ],
+        },
       });
+
+      const accountData = {
+        userId: dto.userId,
+        githubId: String(githubUser.id),
+        username: githubUser.login,
+        email,
+        avatarUrl: githubUser.avatar_url,
+        accessToken: access_token, // Encrypt this in production!
+        scopes: scope?.split(',') || [],
+        isActive: true,
+        metadata: {
+          name: githubUser.name,
+          bio: githubUser.bio,
+          location: githubUser.location,
+          publicRepos: githubUser.public_repos,
+        },
+        lastSyncAt: new Date(),
+      };
 
       if (account) {
         // Update existing account
         account = await this.prisma.gitHubAccount.update({
-          where: { userId: dto.userId },
-          data: {
-            githubId: String(githubUser.id),
-            username: githubUser.login,
-            email,
-            avatarUrl: githubUser.avatar_url,
-            accessToken: access_token, // Encrypt this in production!
-            scopes: scope?.split(',') || [],
-            isActive: true,
-            metadata: {
-              name: githubUser.name,
-              bio: githubUser.bio,
-              location: githubUser.location,
-              publicRepos: githubUser.public_repos,
-            },
-            lastSyncAt: new Date(),
-          },
+          where: { id: account.id },
+          data: accountData,
         });
+        this.logger.log(`Updated existing GitHub account for user ${dto.userId}`);
       } else {
         // Create new account
         account = await this.prisma.gitHubAccount.create({
-          data: {
-            userId: dto.userId,
-            githubId: String(githubUser.id),
-            username: githubUser.login,
-            email,
-            avatarUrl: githubUser.avatar_url,
-            accessToken: access_token,
-            scopes: scope?.split(',') || [],
-            isActive: true,
-            metadata: {
-              name: githubUser.name,
-              bio: githubUser.bio,
-              location: githubUser.location,
-              publicRepos: githubUser.public_repos,
-            },
-            lastSyncAt: new Date(),
-          },
+          data: accountData,
         });
+        this.logger.log(`Created new GitHub account for user ${dto.userId}`);
       }
 
       this.logger.log(`Successfully connected GitHub account for user ${dto.userId}`);
