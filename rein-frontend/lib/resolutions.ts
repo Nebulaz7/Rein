@@ -41,7 +41,7 @@ export interface ResolutionTask {
   resources?: TaskResource[]; // Use the named type
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://rein-63fq.onrender.com";
 
 export const resolutionAPI = {
   // Create a new resolution

@@ -428,7 +428,7 @@ export default function ChatPage() {
   const loadExistingSession = async (sid: string) => {
     setIsProcessing(true);
     try {
-      const res = await fetch(`http://localhost:5000/context/session/${sid}`);
+      const res = await fetch(`https://rein-63fq.onrender.com/context/session/${sid}`);
       if (!res.ok) throw new Error("Session not found");
 
       const data = await res.json();
@@ -456,7 +456,7 @@ export default function ChatPage() {
 
     try {
       // 1. Only start the session (don't ask for clarification yet)
-      const res = await fetch("http://localhost:5000/context/start", {
+      const res = await fetch("https://rein-63fq.onrender.com/context/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt }),
@@ -472,7 +472,22 @@ export default function ChatPage() {
       const data = await res.json();
 
       if (data.type === "skip") {
-        router.push("/resolution");
+        // No missing fields - proceed directly to implementation
+        // Stay on /chat page and show implementation phase
+        console.log('No missing fields detected, proceeding to implementation');
+        
+        // Set the session as ready and trigger implementation
+        setShowSummary(true);
+        setSession({
+          sessionId: data.session?.sessionId || `session-${Date.now()}`,
+          originalPrompt: prompt,
+          history: [],
+          roundCount: 0,
+          isAtLimit: false,
+          isReady: true,
+          summary: `Based on your goal: "${prompt}", we'll create an implementation plan.`,
+        });
+        
         return;
       }
 
@@ -493,7 +508,7 @@ export default function ChatPage() {
       // 2. NOW get first AI clarification (with empty userMessage for first turn)
       setIsProcessing(true);
 
-      const firstAiRes = await fetch("http://localhost:5000/context/next", {
+      const firstAiRes = await fetch("https://rein-63fq.onrender.com/context/next", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -542,7 +557,7 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, { role: "user", content: userMsg }]);
 
     try {
-      const res = await fetch("http://localhost:5000/context/next", {
+      const res = await fetch("https://rein-63fq.onrender.com/context/next", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -592,7 +607,7 @@ export default function ChatPage() {
 
     setIsProcessing(true);
     try {
-      const res = await fetch("http://localhost:5000/context/update-summary", {
+      const res = await fetch("https://rein-63fq.onrender.com/context/update-summary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -729,7 +744,7 @@ export default function ChatPage() {
       // Use the session summary if available, otherwise fall back to original prompt
       const prompt = session.summary || session.originalPrompt;
 
-      const res = await fetch("http://localhost:5000/generate", {
+      const res = await fetch("https://rein-63fq.onrender.com/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

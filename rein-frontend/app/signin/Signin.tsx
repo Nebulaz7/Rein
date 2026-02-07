@@ -20,6 +20,7 @@ const SignIn = () => {
         options: {
           // Full URL – very important for Supabase to redirect correctly
           redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: provider === "github" ? "read:user user:email" : undefined,
           queryParams: {
             access_type: "offline",
             prompt: "consent", // forces Google to show consent screen every time (good for dev/testing)

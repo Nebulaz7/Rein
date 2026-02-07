@@ -10,7 +10,7 @@ export class GitHubAuthController {
   @Redirect()
   authorize(@Req() req) {
     const userId = req.user?.id || 'demo-user'; // Use your auth
-    const redirectUri = 'http://localhost:5000/auth/github/callback';
+    const redirectUri = 'https://rein-63fq.onrender.com/auth/github/callback';
     
     const url = this.githubService.getAuthorizationUrl(userId, redirectUri);
     return { url };

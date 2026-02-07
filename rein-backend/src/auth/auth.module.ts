@@ -11,7 +11,7 @@ export class AuthController {
     const { data, error } = await this.supabase.getClient().auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'http://localhost:5000/auth/callback',
+        redirectTo: 'https://rein-63fq.onrender.com/auth/callback',
       },
     });
 

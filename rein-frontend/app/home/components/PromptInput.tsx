@@ -82,7 +82,7 @@ const PromptInput = () => {
     };
 
     try {
-      const response = await fetch("http://localhost:5000/context/start", {
+      const response = await fetch("https://rein-63fq.onrender.com/context/start", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

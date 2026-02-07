@@ -111,7 +111,7 @@ export class OpikClientService implements OnModuleInit, OnModuleDestroy {
    * Log output and complete a trace
    */
   endTrace(trace: OpikTrace, output?: any): OpikTrace {
-    trace.update({
+    return trace.end({
       output: output
         ? {
             data: output,
@@ -119,8 +119,8 @@ export class OpikClientService implements OnModuleInit, OnModuleDestroy {
           }
         : undefined,
     });
-    return trace.end();
   }
+
 
   /**
    * Log a score for a trace
