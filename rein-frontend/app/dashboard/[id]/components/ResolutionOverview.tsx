@@ -25,7 +25,7 @@ export default function ResolutionOverview({
             Active Resolution
           </Badge>
           <h2 className="text-2xl font-black uppercase italic mb-2">{title}</h2>
-          <p className="text-sm text-muted-foreground max-w-2xl">
+          <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
             {description}
           </p>
         </div>
