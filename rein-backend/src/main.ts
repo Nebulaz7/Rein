@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { json, urlencoded } from 'express'; // ✅ Add this import
 
 // Global error handlers to prevent crashes from email service socket errors
 process.on('uncaughtException', (error: Error) => {
@@ -27,14 +28,20 @@ process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+  
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ limit: '50mb', extended: true }));
+  
   app.enableCors({
-    origin: ['http://localhost:3000'],
+    origin: ['https://rein-app.vercel.app'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,
   });
-
-  await app.listen(process.env.PORT ?? 5000);
+  
+  const port = process.env.PORT || 5000;
+  await app.listen(port, '0.0.0.0');
+  console.log(`Application is running on port ${port}`);
 }
+
 bootstrap();
