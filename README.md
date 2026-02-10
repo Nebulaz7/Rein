@@ -459,7 +459,7 @@ python main.py
 
 **Evaluation & Observability**: ✅ User-facing quality metrics, confidence scoring, Opik tracing with trace IDs, week-over-week improvement tracking
 
-**Goal Alignment**: ✅ Purpose-built for resolution execution, habit formation through streaks, multi-platform accountability
+**Goal Alignment**: ✅ Purpose-built for resolution execution, habit formation through streaks, multi-platform accountability.
 
 ---
 
