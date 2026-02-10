@@ -175,20 +175,20 @@ export default function ChatPage() {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/mcp/calendar/status?userId=${userId}`,
         {
-          method: 'GET',
+          method: "GET",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-        }
+        },
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         return data.connected || false;
       }
       return false;
     } catch (error) {
-      console.error('Failed to check calendar connection:', error);
+      console.error("Failed to check calendar connection:", error);
       return false;
     }
   };
@@ -199,20 +199,20 @@ export default function ChatPage() {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/auth/slack/status?userId=${userId}`,
         {
-          method: 'GET',
+          method: "GET",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-        }
+        },
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         return data.connected || false;
       }
       return false;
     } catch (error) {
-      console.error('Failed to check Slack connection:', error);
+      console.error("Failed to check Slack connection:", error);
       return false;
     }
   };
@@ -223,20 +223,20 @@ export default function ChatPage() {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/github/account?userId=${userId}`,
         {
-          method: 'GET',
+          method: "GET",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-        }
+        },
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         return data.isActive || false;
       }
       return false;
     } catch (error) {
-      console.error('Failed to check GitHub connection:', error);
+      console.error("Failed to check GitHub connection:", error);
       return false;
     }
   };
@@ -371,35 +371,39 @@ export default function ChatPage() {
         } = await supabase.auth.getUser();
         if (user) {
           setUser(user);
-          
-          // Check integration statuses
-          const [calendarConnected, slackConnected, githubConnected] = await Promise.all([
-            checkCalendarConnection(user.id),
-            checkSlackConnection(user.id),
-            checkGitHubConnection(user.id),
-          ]);
 
-          setIntegrations(prev => 
-            prev.map(integration => {
-              if (integration.id === 'google-calendar') {
+          // Check integration statuses
+          const [calendarConnected, slackConnected, githubConnected] =
+            await Promise.all([
+              checkCalendarConnection(user.id),
+              checkSlackConnection(user.id),
+              checkGitHubConnection(user.id),
+            ]);
+
+          setIntegrations((prev) =>
+            prev.map((integration) => {
+              if (integration.id === "google-calendar") {
                 return { ...integration, connected: calendarConnected };
               }
-              if (integration.id === 'slack') {
+              if (integration.id === "slack") {
                 return { ...integration, connected: slackConnected };
               }
-              if (integration.id === 'github') {
+              if (integration.id === "github") {
                 return { ...integration, connected: githubConnected };
               }
               // Email is always connected since users authenticate with Google
-              if (integration.id === 'google-email') {
+              if (integration.id === "google-email") {
                 return { ...integration, connected: true };
               }
               return integration;
-            })
+            }),
           );
         }
       } catch (error) {
-        console.error('Failed to fetch user or check integration statuses:', error);
+        console.error(
+          "Failed to fetch user or check integration statuses:",
+          error,
+        );
       }
     };
 
@@ -428,7 +432,9 @@ export default function ChatPage() {
   const loadExistingSession = async (sid: string) => {
     setIsProcessing(true);
     try {
-      const res = await fetch(`https://rein-63fq.onrender.com/context/session/${sid}`);
+      const res = await fetch(
+        `https://rein-63fq.onrender.com/context/session/${sid}`,
+      );
       if (!res.ok) throw new Error("Session not found");
 
       const data = await res.json();
@@ -474,8 +480,8 @@ export default function ChatPage() {
       if (data.type === "skip") {
         // No missing fields - proceed directly to implementation
         // Stay on /chat page and show implementation phase
-        console.log('No missing fields detected, proceeding to implementation');
-        
+        console.log("No missing fields detected, proceeding to implementation");
+
         // Set the session as ready and trigger implementation
         setShowSummary(true);
         setSession({
@@ -487,7 +493,7 @@ export default function ChatPage() {
           isReady: true,
           summary: `Based on your goal: "${prompt}", we'll create an implementation plan.`,
         });
-        
+
         return;
       }
 
@@ -508,14 +514,17 @@ export default function ChatPage() {
       // 2. NOW get first AI clarification (with empty userMessage for first turn)
       setIsProcessing(true);
 
-      const firstAiRes = await fetch("https://rein-63fq.onrender.com/context/next", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId: newSession.sessionId,
-          userMessage: "",
-        }),
-      });
+      const firstAiRes = await fetch(
+        "https://rein-63fq.onrender.com/context/next",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: newSession.sessionId,
+            userMessage: "",
+          }),
+        },
+      );
 
       if (!firstAiRes.ok) {
         throw new Error("Failed to get initial AI clarification");
@@ -607,14 +616,17 @@ export default function ChatPage() {
 
     setIsProcessing(true);
     try {
-      const res = await fetch("https://rein-63fq.onrender.com/context/update-summary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId: session.sessionId,
-          corrections: corrections.trim(),
-        }),
-      });
+      const res = await fetch(
+        "https://rein-63fq.onrender.com/context/update-summary",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: session.sessionId,
+            corrections: corrections.trim(),
+          }),
+        },
+      );
 
       if (!res.ok) throw new Error("Failed to update summary");
 
@@ -643,14 +655,14 @@ export default function ChatPage() {
     if (!session?.isReady && !session?.isAtLimit) return;
 
     // Check if at least one integration is selected
-    const connectedIntegrations = integrations.filter(i => i.connected);
+    const connectedIntegrations = integrations.filter((i) => i.connected);
     if (connectedIntegrations.length === 0) {
       setIntegrationError(
         "Please connect at least one integration from the navbar first",
       );
       return;
     }
-    
+
     if (selectedIntegrations.length === 0) {
       setIntegrationError(
         "Please select at least one connected integration to sync with",
@@ -682,20 +694,26 @@ export default function ChatPage() {
       const syncPromises = [];
 
       // Calendar sync
-      if (selectedIntegrations.includes('google-calendar')) {
-        console.log('Syncing to calendar with roadmap:', currentResolution.roadmap);
-        const calendarSync = fetch(`${process.env.NEXT_PUBLIC_API_URL}/mcp/calendar/sync`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: user.id,
-            roadmap: currentResolution.roadmap,
-          }),
-        }).then(async (res) => {
+      if (selectedIntegrations.includes("google-calendar")) {
+        console.log(
+          "Syncing to calendar with roadmap:",
+          currentResolution.roadmap,
+        );
+        const calendarSync = fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/mcp/calendar/sync`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: user.id,
+              roadmap: currentResolution.roadmap,
+            }),
+          },
+        ).then(async (res) => {
           const data = await res.json();
-          console.log('Calendar sync response:', data);
+          console.log("Calendar sync response:", data);
           if (!data.success) {
-            throw new Error(data.error || 'Calendar sync failed');
+            throw new Error(data.error || "Calendar sync failed");
           }
           return data;
         });
@@ -703,15 +721,15 @@ export default function ChatPage() {
       }
 
       // GitHub sync (if needed in the future)
-      if (selectedIntegrations.includes('github')) {
+      if (selectedIntegrations.includes("github")) {
         // TODO: Implement GitHub sync
-        console.log('GitHub sync selected - implementation pending');
+        console.log("GitHub sync selected - implementation pending");
       }
 
       // Slack sync (if needed in the future)
-      if (selectedIntegrations.includes('slack')) {
+      if (selectedIntegrations.includes("slack")) {
         // TODO: Implement Slack sync
-        console.log('Slack sync selected - implementation pending');
+        console.log("Slack sync selected - implementation pending");
       }
 
       // Wait for all syncs to complete
@@ -763,7 +781,8 @@ export default function ChatPage() {
       }
 
       // Extract suggestedPlatforms from the response
-      const suggestedPlatforms = result.githubSyncMetadata?.suggestedPlatforms || ['calendar'];
+      const suggestedPlatforms = result.githubSyncMetadata
+        ?.suggestedPlatforms || ["calendar"];
 
       // Save the resolution to database with generated title and description
       const savedResolution = await resolutionAPI.create({
@@ -773,7 +792,8 @@ export default function ChatPage() {
         roadmap: result.resolution,
         suggestedPlatforms, // Pass the suggested platforms from preprocessor
         userEmail: user.email || undefined, // Pass user email for welcome emails
-        userName: user.user_metadata?.name || user.email?.split('@')[0] || undefined, // Pass user name
+        userName:
+          user.user_metadata?.name || user.email?.split("@")[0] || undefined, // Pass user name
       });
 
       // Store the saved resolution in state for syncing
@@ -972,6 +992,15 @@ export default function ChatPage() {
                         >
                           Edit
                         </Button>
+                        {isGeneratingRoadmap ? (
+                          <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-lg">
+                            <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin flex-shrink-0" />
+                            <span className="text-xs text-blue-700 dark:text-blue-300">
+                              This might take a while, feel free to check back
+                              later
+                            </span>
+                          </div>
+                        ) : null}
                       </div>
                     )}
                   </div>
@@ -1168,16 +1197,17 @@ export default function ChatPage() {
                   <h3 className="text-sm font-medium text-muted-foreground">
                     Select integrations to sync
                   </h3>
-                  
+
                   {/* Show message if no integrations are connected */}
-                  {integrations.filter(i => i.connected).length === 0 && (
+                  {integrations.filter((i) => i.connected).length === 0 && (
                     <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
                       <p className="text-xs text-amber-600 dark:text-amber-400">
-                        No integrations connected yet. Connect integrations from the navbar to sync your resolution.
+                        No integrations connected yet. Connect integrations from
+                        the navbar to sync your resolution.
                       </p>
                     </div>
                   )}
-                  
+
                   <div className="flex flex-col gap-2">
                     {integrations.map((integration) => (
                       <div

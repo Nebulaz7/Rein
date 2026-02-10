@@ -82,13 +82,16 @@ const PromptInput = () => {
     };
 
     try {
-      const response = await fetch("https://rein-63fq.onrender.com/context/start", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        "https://rein-63fq.onrender.com/context/start",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
         },
-        body: JSON.stringify(payload),
-      });
+      );
 
       const result = await response.json();
       console.log("Backend analysis result:", result);
@@ -123,7 +126,7 @@ const PromptInput = () => {
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     // Mock enhancement - in production, this would come from the API
-    const enhanced = `${value}\n\nEnhanced with: specific timeline, measurable goals, and actionable steps.`;
+    const enhanced = `${value}\n\nFeature currently unavailable.`;
     setValue(enhanced);
 
     setIsEnhancing(false);
